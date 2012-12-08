@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT(astro, 0.1, stv0g@0l.de)
-AC_CONFIG_SRCDIR([include/sun.h])
+AC_CONFIG_SRCDIR([src/astro.c])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
