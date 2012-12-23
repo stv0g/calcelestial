@@ -1,0 +1,13 @@
+2012-12-23  Steffen Vogel  <post@steffenvogel.de>
+
+	* added caching for geonames.org lookups:
+	geonames_cache_lookup() and
+	geonames_cache_store()
+
+2012-12-22  Steffen Vogel  <post@steffenvogel.de>
+
+	* added a first version of a manpage
+
+2012-11-22  Steffen Vogel  <post@steffenvogel.deA
+
+	* first version
