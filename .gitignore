@@ -2,6 +2,7 @@
 
 # Binaries
 /src/sun
+/src/geonames
 
 # Compiled Object files
 *.slo

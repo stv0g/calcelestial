@@ -2,4 +2,4 @@ SUBDIRS = src
 
 dist_doc_DATA = README
 
-man_MANS = man/sun.1
+man_MANS = doc/sun.1
