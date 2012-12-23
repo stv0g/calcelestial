@@ -1,18 +1,15 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <curl/curl.h>
 #include <json/json.h>
 
+#include "../config.h"
 #include "geonames.h"
 
 const char* username = "libastro";
 const char* request_url_tpl = "http://api.geonames.org/search?name=%s&maxRows=1&username=%s&type=json&orderby=relevance";
-
-struct memory_block {
-	char *address;
-	size_t size;
-};
 
 static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, void *userp) {
 	static struct json_tokener *jtok;
@@ -47,6 +44,16 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 }
 
 int geonames_lookup(const char *place, struct coords *result, char *name, int n) {
+
+#ifdef GEONAMES_CACHE_SUPPORT
+	if (geonames_cache_lookup(place, result, name, n) == EXIT_SUCCESS) {
+#ifdef DEBUG
+		printf("using cached entry\n");
+#endif
+		return EXIT_SUCCESS;
+	}
+#endif
+
 	CURL *ch;
 	CURLcode res;
 
@@ -87,7 +94,14 @@ int geonames_lookup(const char *place, struct coords *result, char *name, int n)
 
 	if (jobj) {
 		int ret = geonames_parse(jobj, result, name, n);
-		json_object_put(jobj);
+		if (ret == EXIT_SUCCESS) {
+#ifdef GEONAMES_CACHE_SUPPORT
+			geonames_cache_store(place, result, name, n);
+#ifdef DEBUG
+			printf("storing cache entry\n");
+#endif
+#endif
+		}
 
 		return ret;
 	}
@@ -110,5 +124,80 @@ int geonames_parse(struct json_object *jobj, struct coords *result, char *name, 
 		strncpy(name, json_object_get_string(json_object_object_get(jobj_place, "name")), n);
 	}
 
+	return EXIT_SUCCESS;
+}
+
+int geonames_cache_lookup(const char *place, struct coords *result, char *name, int n) {
+	/* create filename */
+	char filename[256];
+	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
+
+	FILE *file = fopen(filename, "r"); /* should check the result */
+	if (file == NULL) {
+		return EXIT_FAILURE;
+	}
+
+	char line[256];
+	while (fgets(line, sizeof(line), file)) {
+		/* replace newline at the end */
+		char *end = strchr(line, '\n');
+		if (end == NULL) {
+			return EXIT_FAILURE;
+		}
+		else {
+			*end = '\0';
+		}
+
+		char *tok;
+		int col;
+		for (col = 0, tok = strtok(line, "\t"); tok != NULL; tok = strtok(NULL, "\t")) {
+			switch (col) {
+				case 0:
+					if (strcmp(tok, place) != 0) {
+						continue; /* skip row */
+					}
+					break;
+
+				case 1:
+					result->lat = strtod(tok, NULL);
+					break;
+
+				case 2:
+					result->lon = strtod(tok, NULL);
+					break;
+
+				case 3:
+					strncpy(name, tok, n);
+					fclose(file);
+					return EXIT_SUCCESS; /* found! */
+			}
+			col++;
+		}
+	}
+
+	fclose(file);
+	return 1; /* not found */
+}
+
+int geonames_cache_store(const char *place, struct coords *result, char *name, int n) {
+	/* create filename */
+	char filename[256];
+	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
+
+	FILE* file = fopen(filename, "a+"); /* should check the result */
+	if (file == NULL) {
+		return EXIT_FAILURE;
+	}
+
+	/* build cache entry */
+	char line[256];
+	snprintf(line, sizeof(line), "%s\t%.5f\t%.5f\t%s\n", place, result->lat, result->lon, name);
+
+	if (fputs(line, file) == EOF) {
+		fclose(file);
+		return EXIT_FAILURE;
+	}
+
+	fclose(file);
 	return EXIT_SUCCESS;
 }
