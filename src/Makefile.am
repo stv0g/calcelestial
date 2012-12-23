@@ -4,7 +4,8 @@ sun_SOURCES = sun_main.c sun.c
 sun_LDADD = -lm
 
 if GEONAMES_SUPPORT
-  bin_PROGRAMS += geonames
+  TESTS = geonames
+  check_PROGRAMS = geonames
 
   geonames_SOURCES = geonames_main.c geonames.c
   geonames_LDADD = $(DEPS_GEONAMES_LIBS)
