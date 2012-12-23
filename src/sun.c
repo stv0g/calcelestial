@@ -26,6 +26,7 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "../config.h"
 #include "sun.h"
 
 double deg2rad(double deg) {

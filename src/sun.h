@@ -34,8 +34,6 @@ struct coords { double lat, lon; };
 
 struct sun_coords { double dk, ra; };
 
-//#define DEBUG 1
-#define GEONAMES_SUPPORT 1
 #define M_2PI (M_PI * 2)
 
 enum mode { RISE, SET, NOON, DAYTIME, NIGHTTIME };
