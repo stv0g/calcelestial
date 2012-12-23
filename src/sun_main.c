@@ -1,4 +1,4 @@
-/**
+	/**
  * Main routine
  *
  * Does parsing of command line options and start calculation
@@ -32,7 +32,9 @@
 #include <getopt.h>
 #include <float.h>
 #include <math.h>
+#include <sys/time.h>
 
+#include "../config.h"
 #include "sun.h"
 
 static struct option long_options[] = {
@@ -46,6 +48,7 @@ static struct option long_options[] = {
 #endif
 	{"zone",	required_argument, 0, 'z'},
 	{"help",	no_argument,	   0, 'h'},
+	{"version",	no_argument,	   0, 'v'},
 	{0}
 };
 
@@ -59,8 +62,13 @@ static char *long_options_descs[] = {
 	"query geonames.org for geographical position",
 #endif
 	"use timezone for output",
-	"show this help"
+	"show this help",
+	"show version"
 };
+
+void version () {
+	printf("%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+}
 
 void usage() {
 	printf("usage: sun mode [options]\n\n");
@@ -76,7 +84,7 @@ void usage() {
 	}
 
 	printf("\nA combination of --lat, --lon or --query is required!\n");
-	printf("For bugs or feature requests please contact Steffen Vogel <stv0g@0l.de>\n");
+	printf("Please report bugs to: %s\n", PACKAGE_BUGREPORT);
 }
 
 char * strreplace(char *subject, char *search, char *replace) {
@@ -109,39 +117,30 @@ char * strreplace(char *subject, char *search, char *replace) {
 int main(int argc, char *argv[]) {
 	/* default options */
 	double twilight = -50.0 / 60; /* 50 Bogenminuten; no twilight, normal sunset/rise */
-	int timezone = 0; /* UTC */
 	char *format = "%H:%M";
 	char *query = NULL;
 	bool error = false;
+	int timezone = 0;
 
 	enum mode mode;
-	struct coords pos = { INFINITY, INFINITY };
 	struct tm date;
+	struct coords pos = { INFINITY, INFINITY };
 
 	/* default date: now */
 	time_t t;
 	time(&t);
 	localtime_r(&t, &date);
 
-	/* parse command */
-	if (argc <= 1) {
-		fprintf(stderr, "mode required\n\n");
-		error = true;
-	}
-	else if (strcmp(argv[1], "rise") == 0) mode = RISE;
-	else if (strcmp(argv[1], "set") == 0) mode = SET;
-	else if (strcmp(argv[1], "noon") == 0) mode = NOON;
-	else if (strcmp(argv[1], "daytime") == 0) mode = DAYTIME;
-	else if (strcmp(argv[1], "nighttime") == 0) mode = NIGHTTIME;
-	else {
-		fprintf(stderr, "invalid mode: %s\n", argv[1]);
-		error = true;
+	/* default timezone: system */
+	struct timezone tz;
+	if (gettimeofday(NULL, &tz) == 0) {
+		timezone = -tz.tz_minuteswest / 60.0;
 	}
 
 	/* parse command line arguments */
 	while (1) {
 		int optidx;
-		int c = getopt_long(argc-1, argv+1, "ht:d:f:a:o:q:z:", long_options, &optidx);
+		int c = getopt_long(argc-1, argv+1, "hvt:d:f:a:o:q:z:", long_options, &optidx);
 
 		/* detect the end of the options. */
 		if (c == -1) break;
@@ -191,6 +190,10 @@ int main(int argc, char *argv[]) {
 				timezone = atoi(optarg);
 				break;
 
+			case 'v':
+				version();
+				return EXIT_SUCCESS;
+
 			case 'h':
 				usage();
 				return EXIT_SUCCESS;
@@ -201,15 +204,32 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	/* parse command */
+	if (argc < 2) {
+		fprintf(stderr, "mode is missing\n");
+		error = true;
+	}
+	else if (strcmp(argv[1], "rise") == 0) mode = RISE;
+	else if (strcmp(argv[1], "set") == 0) mode = SET;
+	else if (strcmp(argv[1], "noon") == 0) mode = NOON;
+	else if (strcmp(argv[1], "daytime") == 0) mode = DAYTIME;
+	else if (strcmp(argv[1], "nighttime") == 0) mode = NIGHTTIME;
+	else {
+		fprintf(stderr, "invalid mode: %s\n", argv[1]);
+		error = true;
+	}
+
 #ifdef GEONAMES_SUPPORT
+	/* lookup place at http://geonames.org */
 	if (query && geonames_lookup(query, &pos, NULL, 0) != 0) {
 		fprintf(stderr, "failed to lookup location: %s\n", query);
 		error = true;
 	}
 #endif
 
+	/* validate coordinates */
 	if (pos.lat == INFINITY) {
-		fprintf(stderr, "please provide a complete position: latitude is missing\n");
+		fprintf(stderr, "latitude is missing\n");
 		error = true;
 	}
 	else {
@@ -223,7 +243,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (pos.lon == INFINITY) {
-		fprintf(stderr, "please provide a complete position: longitude is missing\n");
+		fprintf(stderr, "longitude is missing\n");
 		error = true;
 	}
 	else if (fabs(pos.lon) > 180) {
@@ -231,6 +251,7 @@ int main(int argc, char *argv[]) {
 		error = true;
 	}
 
+	/* abort on errors */
 	if (error) {
 		printf("\n");
 		usage();
@@ -240,7 +261,7 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
 	char date_str[64];
 	strftime(date_str, 64, "%Y-%m-%d", &date);
-	printf("calculate for %s\n", date_str);
+	printf("calculate for: %s\n", date_str);
 	printf("for position: %f, %f\n", pos.lat, pos.lon);
 	printf("with twilight: %f\n", twilight);
 #endif
