@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
 	/* parse command line arguments */
 	while (1) {
 		int optidx;
-		int c = getopt_long(argc, argv, "hvt:d:f:a:o:q:z:", long_options, &optidx);
+		int c = getopt_long(argc-1, argv+1, "+hvt:d:f:a:o:q:z:", long_options, &optidx);
 
 		/* detect the end of the options. */
 		if (c == -1) break;
