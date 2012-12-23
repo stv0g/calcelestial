@@ -46,7 +46,7 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 	return realsize;
 }
 
-int geonames_lookup(const char *place, struct coords *result) {
+int geonames_lookup(const char *place, struct coords *result, char *name, int n) {
 	CURL *ch;
 	CURLcode res;
 
@@ -86,21 +86,29 @@ int geonames_lookup(const char *place, struct coords *result) {
 	}
 
 	if (jobj) {
-		return geonames_parse(jobj, result);;
+		int ret = geonames_parse(jobj, result, name, n);
+		json_object_put(jobj);
+
+		return ret;
 	}
 	else {
 		return EXIT_FAILURE;
 	}
 }
 
-int geonames_parse(struct json_object *jobj, struct coords *result) {
-	struct json_object *jobj_place = json_object_array_get_idx(json_object_object_get(jobj, "geonames"), 0);
+int geonames_parse(struct json_object *jobj, struct coords *result, char *name, int n) {
+	int results = json_object_get_int(json_object_object_get(jobj, "totalResultsCount"));
+	if (results == 0) {
+		return EXIT_FAILURE;
+	}
 
+	struct json_object *jobj_place = json_object_array_get_idx(json_object_object_get(jobj, "geonames"), 0);
 	result->lat = json_object_get_double(json_object_object_get(jobj_place, "lat"));
 	result->lon = json_object_get_double(json_object_object_get(jobj_place, "lng"));
 
-	/* cleanup */
-	json_object_put(jobj);
+	if (name && n > 0) {
+		strncpy(name, json_object_get_string(json_object_object_get(jobj_place, "name")), n);
+	}
 
 	return EXIT_SUCCESS;
 }
