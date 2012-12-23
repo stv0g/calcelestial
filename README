@@ -1,1 +1,2 @@
-libastro is a collection of functions for time, date and ephemeris calculus
+sun calculates the sun's rise/set times, the solar noon and the daylight time duration
+
