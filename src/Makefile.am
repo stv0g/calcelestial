@@ -1,10 +1,7 @@
-bin_PROGRAMS = astro sun geonames
+bin_PROGRAMS = sun geonames
 
-astro_SOURCES = calendar.c astro.c
-astro_LDADD = -lm
+sun_SOURCES = sun_main.c sun.c geonames.c
+sun_LDADD = -lm -lcurl -ljson
 
-sun_SOURCES = sun.c
-sun_LDADD = -lm
-
-geonames_SOURCES = geonames_test.c geonames.c
+geonames_SOURCES = geonames_main.c geonames.c
 geonames_LDADD = -lcurl -ljson

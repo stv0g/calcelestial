@@ -2,8 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT(astro, 0.1, stv0g@0l.de)
-AC_CONFIG_SRCDIR([src/astro.c])
+AC_INIT(sun, 0.1, post@steffenvogel.de)
+AC_CONFIG_SRCDIR([src/sun_main.c])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
