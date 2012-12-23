@@ -1,13 +1,35 @@
-# http://www.gnu.org/software/automake
+*~
 
-Makefile.in
+# Binaries
+/src/sun
 
-# http://www.gnu.org/software/autoconf
+# Compiled Object files
+*.slo
+*.lo
+*.o
 
+# Compiled Dynamic libraries
+*.so
+*.so.*
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# automake
+Makefile
+.deps
+
+# autoconf
 /autom4te.cache
-/aclocal.m4
-/compile
-/configure
-/depcomp
-/install-sh
-/missing
+
+/config.status
+/config.log
+/config.h
+stamp-h1
+
+/libtool
+
+# Debian packaging
+/debian/config.log
