@@ -1,5 +1,11 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* enable debugging */
+#undef DEBUG
+
+/* compile with geonames.org lookup capabilities */
+#undef GEONAMES_SUPPORT
+
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
 
