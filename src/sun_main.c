@@ -71,19 +71,19 @@ void version () {
 }
 
 void usage() {
-	printf("usage: sun mode [options]\n\n");
+	printf("Usage:\n  sun mode [options]\n\n");
 	printf("  mode is one of: rise, set, noon, daytime, nighttime\n\n");
-	printf("  following OPTIONS are available\n");
+	printf("Options:\n");
 
 	struct option *op = long_options;
 	char **desc = long_options_descs;
 	while (op->name && desc) {
-		printf("\t-%c, --%s\t%s\n", op->val, op->name, *desc);
+		printf("  -%c, --%s%s%s\n", op->val, op->name, (strlen(op->name) <= 7) ? "\t\t" : "\t", *desc);
 		op++;
 		desc++;
 	}
 
-	printf("\nA combination of --lat, --lon or --query is required!\n");
+	printf("\nA combination of --lat, --lon or --query is required.\n");
 	printf("Please report bugs to: %s\n", PACKAGE_BUGREPORT);
 }
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
 	bool error = false;
 	int timezone = 0;
 
-	enum mode mode;
+	enum mode mode = INVALID;
 	struct tm date;
 	struct coords pos = { INFINITY, INFINITY };
 
@@ -137,10 +137,22 @@ int main(int argc, char *argv[]) {
 		timezone = -tz.tz_minuteswest / 60.0;
 	}
 
+	/* parse mode */
+	if (argc > 1 && argv[1][0] != '-') {
+		if (strcmp(argv[1], "rise") == 0) mode = RISE;
+		else if (strcmp(argv[1], "set") == 0) mode = SET;
+		else if (strcmp(argv[1], "noon") == 0) mode = NOON;
+		else if (strcmp(argv[1], "daytime") == 0) mode = DAYTIME;
+		else if (strcmp(argv[1], "nighttime") == 0) mode = NIGHTTIME;
+
+		argc--;
+		argv++;
+	}
+
 	/* parse command line arguments */
 	while (1) {
 		int optidx;
-		int c = getopt_long(argc-1, argv+1, "+hvt:d:f:a:o:q:z:", long_options, &optidx);
+		int c = getopt_long(argc, argv, "+hvt:d:f:a:o:q:z:", long_options, &optidx);
 
 		/* detect the end of the options. */
 		if (c == -1) break;
@@ -200,22 +212,14 @@ int main(int argc, char *argv[]) {
 
 			case '?':
 			default:
+				fprintf(stderr, "unrecognized option %s\n", optarg);
 				error = true;
 		}
 	}
 
-	/* parse command */
-	if (argc < 2) {
-		fprintf(stderr, "mode is missing\n");
-		error = true;
-	}
-	else if (strcmp(argv[1], "rise") == 0) mode = RISE;
-	else if (strcmp(argv[1], "set") == 0) mode = SET;
-	else if (strcmp(argv[1], "noon") == 0) mode = NOON;
-	else if (strcmp(argv[1], "daytime") == 0) mode = DAYTIME;
-	else if (strcmp(argv[1], "nighttime") == 0) mode = NIGHTTIME;
-	else {
-		fprintf(stderr, "invalid mode: %s\n", argv[1]);
+	/* validate mode */
+	if (mode == INVALID) {
+		fprintf(stderr, "invalid mode\n");
 		error = true;
 	}
 

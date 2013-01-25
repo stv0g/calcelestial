@@ -36,7 +36,7 @@ struct sun_coords { double dk, ra; };
 
 #define M_2PI (M_PI * 2)
 
-enum mode { RISE, SET, NOON, DAYTIME, NIGHTTIME };
+enum mode { INVALID, RISE, SET, NOON, DAYTIME, NIGHTTIME };
 
 /* helper function */
 void usage();
