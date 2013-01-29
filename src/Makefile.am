@@ -1,7 +1,7 @@
 bin_PROGRAMS = sun
 
-sun_SOURCES = sun_main.c sun.c
-sun_LDADD = -lm
+sun_SOURCES = sun_main.c
+sun_LDADD = -lm -lnova
 
 if GEONAMES_SUPPORT
   noinst_PROGRAMS = geonames

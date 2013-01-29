@@ -71,9 +71,9 @@ am__geonames_SOURCES_DIST = geonames_main.c geonames.c
 geonames_OBJECTS = $(am_geonames_OBJECTS)
 am__DEPENDENCIES_1 =
 @GEONAMES_SUPPORT_TRUE@geonames_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am__sun_SOURCES_DIST = sun_main.c sun.c geonames.c
+am__sun_SOURCES_DIST = sun_main.c geonames.c
 @GEONAMES_SUPPORT_TRUE@am__objects_1 = geonames.$(OBJEXT)
-am_sun_OBJECTS = sun_main.$(OBJEXT) sun.$(OBJEXT) $(am__objects_1)
+am_sun_OBJECTS = sun_main.$(OBJEXT) $(am__objects_1)
 sun_OBJECTS = $(am_sun_OBJECTS)
 @GEONAMES_SUPPORT_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
 sun_DEPENDENCIES = $(am__DEPENDENCIES_2)
@@ -183,8 +183,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-sun_SOURCES = sun_main.c sun.c $(am__append_1)
-sun_LDADD = -lm $(am__append_2)
+sun_SOURCES = sun_main.c $(am__append_1)
+sun_LDADD = -lm -lnova $(am__append_2)
 @GEONAMES_SUPPORT_TRUE@geonames_SOURCES = geonames_main.c geonames.c
 @GEONAMES_SUPPORT_TRUE@geonames_LDADD = $(DEPS_GEONAMES_LIBS)
 @GEONAMES_SUPPORT_TRUE@AM_CFLAGS = $(DEPS_GEONAMES_CFLAGS)
@@ -280,7 +280,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/geonames.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/geonames_main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sun_main.Po@am__quote@
 
 .c.o:

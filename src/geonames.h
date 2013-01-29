@@ -32,8 +32,8 @@
 #define GEONAMES_CACHE_FILE ".geonames.cache" /* in users home dir */
 
 struct coords {
+	double lng;
 	double lat;
-	double lon;
 };
 
 int geonames_lookup(const char *place, struct coords *coords, char *name, int n);

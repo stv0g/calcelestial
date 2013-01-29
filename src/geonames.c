@@ -73,7 +73,7 @@ int geonames_lookup(const char *place, struct coords *result, char *name, int n)
 #ifdef GEONAMES_CACHE_SUPPORT
 	if (geonames_cache_lookup(place, result, name, n) == EXIT_SUCCESS) {
 #ifdef DEBUG
-		printf("using cached entry\n");
+		printf("using cached geonames entry\n");
 #endif
 		return EXIT_SUCCESS;
 	}
@@ -143,7 +143,7 @@ int geonames_parse(struct json_object *jobj, struct coords *result, char *name, 
 
 	struct json_object *jobj_place = json_object_array_get_idx(json_object_object_get(jobj, "geonames"), 0);
 	result->lat = json_object_get_double(json_object_object_get(jobj_place, "lat"));
-	result->lon = json_object_get_double(json_object_object_get(jobj_place, "lng"));
+	result->lng = json_object_get_double(json_object_object_get(jobj_place, "lng"));
 
 	if (name && n > 0) {
 		strncpy(name, json_object_get_string(json_object_object_get(jobj_place, "name")), n);
@@ -178,7 +178,7 @@ int geonames_cache_lookup(const char *place, struct coords *result, char *name, 
 		for (col = 0, tok = strtok(line, "\t"); tok != NULL; tok = strtok(NULL, "\t")) {
 			switch (col) {
 				case 0:
-					if (strcmp(tok, place) != 0) {
+					if (strcasecmp(tok, place) != 0) {
 						continue; /* skip row */
 					}
 					break;
@@ -188,7 +188,7 @@ int geonames_cache_lookup(const char *place, struct coords *result, char *name, 
 					break;
 
 				case 2:
-					result->lon = strtod(tok, NULL);
+					result->lng = strtod(tok, NULL);
 					break;
 
 				case 3:
@@ -216,7 +216,7 @@ int geonames_cache_store(const char *place, struct coords *result, char *name, i
 
 	/* build cache entry */
 	char line[256];
-	snprintf(line, sizeof(line), "%s\t%.5f\t%.5f\t%s\n", place, result->lat, result->lon, name);
+	snprintf(line, sizeof(line), "%s\t%.5f\t%.5f\t%s\n", place, result->lat, result->lng, name);
 
 	if (fputs(line, file) == EOF) {
 		fclose(file);
