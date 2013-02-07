@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
 
 	int ret = geonames_lookup(name, &res, result_name, 32);
 	if (ret == EXIT_SUCCESS) {
-		printf("%s is at (%.4f, %.4f)\r\n", result_name, res.lat, res.lon);
+		printf("%s is at (%.4f, %.4f)\r\n", result_name, res.lat, res.lng);
 	}
 
 	free(result_name);

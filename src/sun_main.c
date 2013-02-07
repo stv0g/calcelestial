@@ -39,34 +39,46 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include <libgen.h>
+
 #include <libnova/libnova.h>
-#include <libnova/solar.h>
+#include <libnova/utility.h>
 
 #include "../config.h"
+#include "objects.h"
 
-enum mode { INVALID, RISE, SET, TRANSIT, DAYTIME, NIGHTTIME };
+enum mode {
+	MODE_NOW,
+	MODE_RISE,
+	MODE_SET,
+	MODE_TRANSIT
+};
 
 extern long timezone;
 
 static struct option long_options[] = {
-	{"horizon",	required_argument, 0, 't'},
-	{"date",	required_argument, 0, 'd'},
+	{"object",	required_argument, 0, 'p'},
+	{"horizon",	required_argument, 0, 'H'},
+	{"time",	required_argument, 0, 't'},
+	{"moment",	required_argument, 0, 'm'},
 	{"format",	required_argument, 0, 'f'},
 	{"lat",		required_argument, 0, 'a'},
 	{"lon",		required_argument, 0, 'o'},
 #ifdef GEONAMES_SUPPORT
 	{"query",	required_argument, 0, 'q'},
 #endif
-	{"zone",	required_argument, 0, 'z'},
+	{"timezone",	required_argument, 0, 'z'},
 	{"help",	no_argument,	   0, 'h'},
 	{"version",	no_argument,	   0, 'v'},
 	{0}
 };
 
 static char *long_options_descs[] = {
-	"use special twilight (nautic|civil|astronomical)",
-	"calculcate for specified date (eg. 2011-12-25)",
-	"output format (eg. %H:%M:%S)",
+	"calculate for given object/planet",
+	"calculate rise/set with given twilight (nautic|civil|astronomical)",
+	"calculate with given time (eg. 2011-12-25)",
+	"use rise/set/transit time for position calculation",
+	"output format (see strftime (3))",
 	"geographical latitude (-90° to 90°)",
 	"geographical longitude (-180° to 180°)",
 #ifdef GEONAMES_SUPPORT
@@ -83,8 +95,7 @@ void version () {
 }
 
 void usage() {
-	printf("Usage:\n  sun mode [options]\n\n");
-	printf("  mode is one of: rise, set, transit, daytime, nighttime\n\n");
+	printf("Usage:\n  %s [options]\n\n", PACKAGE_NAME);
 	printf("Options:\n");
 
 	struct option *op = long_options;
@@ -133,41 +144,32 @@ int main(int argc, char *argv[]) {
 	char *query = NULL;
 	bool error = false;
 
-	enum mode mode = INVALID;
+	enum mode mode = MODE_NOW;
+	enum object obj = OBJECT_INVALID;
 
-	double julian;
+	double jd;
 	struct tm date = { 0 };
 	struct ln_rst_time rst;
-	struct ln_lnlat_posn observer = { DBL_MAX, DBL_MAX };
+	struct ln_lnlat_posn obs = { DBL_MAX, DBL_MAX };
 
 	tzset();
 
 	/* default time: now */
-	julian = ln_get_julian_from_sys();
+	jd = ln_get_julian_from_sys();
 
-	/* parse mode */
-	if (argc > 1 && argv[1][0] != '-') {
-		if (strcmp(argv[1], "rise") == 0) mode = RISE;
-		else if (strcmp(argv[1], "set") == 0) mode = SET;
-		else if (strcmp(argv[1], "transit") == 0) mode = TRANSIT;
-		else if (strcmp(argv[1], "daytime") == 0) mode = DAYTIME;
-		else if (strcmp(argv[1], "nighttime") == 0) mode = NIGHTTIME;
-
-		/* skip mode parameter for following getopt() */
-		argc--;
-		argv++;
-	}
+	/* parse planet/obj */
+	obj = object_from_name(basename(argv[0]), false);
 
 	/* parse command line arguments */
 	while (1) {
 		int optidx;
-		int c = getopt_long(argc, argv, "+hvt:d:f:a:o:q:z:", long_options, &optidx);
+		int c = getopt_long(argc, argv, "+hvt:d:f:a:o:q:z:p:", long_options, &optidx);
 
 		/* detect the end of the options. */
 		if (c == -1) break;
 
 		switch (c) {
-			case 't':
+			case 'H':
 				if (strcmp(optarg, "civil") == 0) {
 					horizon = LN_SOLAR_CIVIL_HORIZON;
 				}
@@ -183,14 +185,14 @@ int main(int argc, char *argv[]) {
 				}
 				break;
 
-			case 'd':
+			case 't':
 				if (strptime(optarg, "%Y-%m-%d", &date) == NULL) {
 					fprintf(stderr, "invalid date: %s\n", optarg);
 					error = true;
 				}
 				else {
 					time_t t = mktime(&date);
-					julian = ln_get_julian_from_timet(&t);
+					jd = ln_get_julian_from_timet(&t);
 
 #ifdef DEBUG
 				        char date_str[64];
@@ -201,22 +203,37 @@ int main(int argc, char *argv[]) {
 				}
 				break;
 
+			case 'm':
+				if (strcmp(optarg, "now") == 0) mode = MODE_NOW;
+				else if (strcmp(optarg, "rise") == 0) mode = MODE_RISE;
+				else if (strcmp(optarg, "set") == 0) mode = MODE_SET;
+				else if (strcmp(optarg, "transit") == 0) mode = MODE_TRANSIT;
+				else {
+					fprintf(stderr, "invalid moment: %s\n", optarg);
+					error = true;
+				}
+				break;
+
 			case 'f':
 				format = strdup(optarg);
 				break;
 
 			case 'a':
-				observer.lat = strtod(optarg, NULL);
+				obs.lat = strtod(optarg, NULL);
 				break;
 
 			case 'o':
-				observer.lng = strtod(optarg, NULL);
+				obs.lng = strtod(optarg, NULL);
 				break;
 #ifdef GEONAMES_SUPPORT
 			case 'q':
 				query = strdup(optarg);
 				break;
 #endif
+
+			case 'p':
+				obj = object_from_name(optarg, false);
+				break;
 
 			case 'z':
 				timezone = -3600 * atoi(optarg);
@@ -237,26 +254,26 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	/* validate mode */
-	if (mode == INVALID) {
-		fprintf(stderr, "invalid mode\n");
+	/* validate obj */
+	if (obj == OBJECT_INVALID) {
+		fprintf(stderr, "invalid object\n");
 		error = true;
 	}
 
 #ifdef GEONAMES_SUPPORT
 	/* lookup place at http://geonames.org */
-	if (query && geonames_lookup(query, (struct pos *) &observer, NULL, 0) != 0) {
+	if (query && geonames_lookup(query, (struct pos *) &obs, NULL, 0) != 0) {
 		fprintf(stderr, "failed to lookup location: %s\n", query);
 		error = true;
 	}
 #endif
 
-	/* validate coordinates */
-	if (fabs(observer.lat) > 90) {
+	/* validate observer coordinates */
+	if (fabs(obs.lat) > 90) {
 		fprintf(stderr, "invalid latitude\n");
 		error = true;
 	}
-	if (fabs(observer.lng) > 180) {
+	if (fabs(obs.lng) > 180) {
 		fprintf(stderr, "invalid longitude\n");
 		error = true;
 	}
@@ -271,62 +288,95 @@ int main(int argc, char *argv[]) {
 #ifdef DEBUG
 	char date_str[64];
 	time_t t;
-	ln_get_timet_from_julian(julian, &t);
+	ln_get_timet_from_julian(jd, &t);
 
-	strftime(date_str, 64, "%Y-%m-%d", gmtime(&t));
+	strftime(date_str, 64, "%Y-%m-%d %H:%M:%S", gmtime(&t));
 	printf("calculate for: %s\n", date_str);
-	printf("for position: %f, %f\n", observer.lat, observer.lng);
+	printf("calculate for jd: %f\n", jd);
+	printf("for position: %f, %f\n", obs.lat, obs.lng);
+	printf("for object: %d\n", obj);
 	printf("with horizon: %f\n", horizon);
 	printf("with timezone: UTC +%dh\n", timezone / -3600);
 #endif
 
-	if (ln_get_solar_rst_horizon(julian, &observer, horizon, &rst) == 1)  {
-                fprintf(stderr, "sun is circumpolar\n");
+	char result_str[64];
+	struct tm result_date;
+	struct ln_date result_ln;
+
+	if (object_rst(obj, jd, horizon, &obs, &rst) == 1)  {
+
+                fprintf(stderr, "object is circumpolar\n");
 		return EXIT_CIRCUMPOLAR;
 	}
+
+	switch (mode) {
+		case MODE_RISE:		jd = rst.rise; break;
+		case MODE_SET:		jd = rst.set; break;
+		case MODE_TRANSIT:	jd = rst.transit; break;
+		case MODE_DAYTIME:	jd = rst.set - rst.rise; break;
+		case MODE_NIGHTTIME:	jd = rst.set - rst.rise; break;
+		case MODE_INVALID:	break;
+	}
+
+	if (mode == MODE_DAYTIME || mode == MODE_NIGHTTIME) {
+		ln_get_date(jd - 0.5, &result_ln);
+
+		if (strstr(format, "%s") != NULL) {
+			char timestamp_str[16];
+			int seconds = round(jd * 86400);
+			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
+			format = strreplace(format, "%s", timestamp_str);
+		}
+
+		result_date.tm_year = -1900;
+		result_date.tm_mon = -1;
+		result_date.tm_mday = 0;
+	}
 	else {
-		double result_jd;
-		char result_str[64];
-		struct tm result_date;
-		struct ln_date result_ln;
+		// calculate position
+		struct ln_equ_posn result_equ;
+		struct ln_hrz_posn result_hrz;
+		double result_dist;
+		double result_diam;
 
-		switch (mode) {
-			case RISE:	result_jd = rst.rise; break;
-			case SET:	result_jd = rst.set; break;
-			case TRANSIT:	result_jd = rst.transit; break;
-			case DAYTIME:	result_jd = rst.set - rst.rise; break;
-			case NIGHTTIME:	result_jd = rst.set - rst.rise; break;
+		object_pos(obj, jd, &obs, &result_equ, &result_hrz, &result_diam, &result_dist);
+
+		struct ln_hms ra;
+		ln_deg_to_hms(result_equ.ra, &ra);
+
+		double az = result_hrz.az + 180;
+		az -= (int) (az / 360) * 360;
+
+		printf("diam = %f\n", result_diam);
+		printf("dist au = %f\n", result_dist);
+		printf("dist km = %f\n", AU_METERS * result_dist);
+		printf("az = %s\n",  ln_get_humanr_location(az));
+		printf("alt = %s\n", ln_get_humanr_location(result_hrz.alt));
+		printf("ra = %dh%dm%fs\n", ra.hours, ra.minutes, ra.seconds);
+		printf("dec = %s\n", ln_get_humanr_location(result_equ.dec));
+
+		/*if (strstr(format, "%R") != NULL) {
+			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
+			format = strreplace(format, "%s", timestamp_str);
 		}
+		if (strstr(format, "%E") != NULL) {
+			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
+			format = strreplace(format, "%s", timestamp_str);
+		}*/
 
-		if (mode == DAYTIME || mode == NIGHTTIME) {
-			ln_get_date(result_jd - 0.5, &result_ln);
+		ln_get_date(jd - timezone / 86400.0, &result_ln);
 
-			if (strstr(format, "%s") != NULL) {
-				char timestamp_str[16];
-				int seconds = round(result_jd * 86400);
-				snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
-				format = strreplace(format, "%s", timestamp_str);
-			}
+		result_date.tm_year = result_ln.years - 1900;
+		result_date.tm_mon = result_ln.months - 1;
+		result_date.tm_mday = result_ln.days;
+	}
 
-			result_date.tm_year = -1900;
-			result_date.tm_mon = -1;
-			result_date.tm_mday = 0;
-		}
-		else {
-			ln_get_date(result_jd - timezone / 86400.0, &result_ln);
+	result_date.tm_hour = result_ln.hours;
+	result_date.tm_min = result_ln.minutes;
+	result_date.tm_sec = result_ln.seconds;
 
-			result_date.tm_year = result_ln.years - 1900;
-			result_date.tm_mon = result_ln.months - 1;
-			result_date.tm_mday = result_ln.days;
-		}
+	strftime(result_str, 64, format, &result_date);
+	printf("%s\n", result_str);
 
-		result_date.tm_hour = result_ln.hours;
-		result_date.tm_min = result_ln.minutes;
-		result_date.tm_sec = result_ln.seconds;
-
-		strftime(result_str, 64, format, &result_date);
-		printf("%s\n", result_str);
-
-		return EXIT_SUCCESS;
-        }
+	return EXIT_SUCCESS;
 }
