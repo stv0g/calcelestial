@@ -1,6 +1,6 @@
 bin_PROGRAMS = calcelestial
 
-calcelestial_SOURCES = calcelestial.c objects.c
+calcelestial_SOURCES = calcelestial.c objects.c helpers.c
 calcelestial_LDADD = -lm -lnova
 
 if GEONAMES_SUPPORT
@@ -14,3 +14,11 @@ if GEONAMES_SUPPORT
 
   AM_CFLAGS = $(DEPS_GEONAMES_CFLAGS)
 endif
+
+#OBJS = sun moon mars neptune jupiter mercury uranus saturn venus pluto
+#for OBJ in $OBJS
+#do
+#	ln -s calcelestial $OBJ
+#done
+#
+# for OBJ in sun moon mars neptune jupiter mercury uranus saturn venus pluto; do ln -s calcelestial $OBJ; done

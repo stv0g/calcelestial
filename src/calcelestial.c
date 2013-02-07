@@ -35,17 +35,14 @@
 #include <getopt.h>
 #include <float.h>
 #include <math.h>
-
+#include <libgen.h>
 #include <time.h>
 #include <sys/time.h>
-
-#include <libgen.h>
-
 #include <libnova/libnova.h>
-#include <libnova/utility.h>
 
 #include "../config.h"
 #include "objects.h"
+#include "helpers.h"
 
 enum mode {
 	MODE_NOW,
@@ -108,33 +105,6 @@ void usage() {
 
 	printf("\nA combination of --lat, --lon or --query is required.\n");
 	printf("Please report bugs to: %s\n", PACKAGE_BUGREPORT);
-}
-
-char * strreplace(char *subject, char *search, char *replace) {
-	int new_len = strlen(subject);
-	int search_len = strlen(search);
-	int replace_len = strlen(replace);
-	char *tmp;
-
-	for (tmp = strstr(subject, search); tmp != NULL; tmp = strstr(tmp + search_len, search)) {
-		new_len += replace_len - search_len;
-	}
-
-	char *old = subject;
-	char *new = malloc(new_len);
-
-	new[0] = '\0'; /* empty string */
-	for (tmp = strstr(subject, search); tmp != NULL; tmp = strstr(tmp + search_len, search)) {
-		new_len = strlen(new);
-
-		strncpy(new + new_len, old, tmp - old);
-		strcpy(new + new_len + (tmp - old), replace);
-		old = tmp + search_len;
-	}
-
-	strcpy(new + strlen(new), old);
-
-	return new;
 }
 
 int main(int argc, char *argv[]) {
@@ -286,22 +256,20 @@ int main(int argc, char *argv[]) {
 	}
 
 #ifdef DEBUG
+{
 	char date_str[64];
 	time_t t;
 	ln_get_timet_from_julian(jd, &t);
 
-	strftime(date_str, 64, "%Y-%m-%d %H:%M:%S", gmtime(&t));
+	strftime(date_str, sizeof(date_str), "%Y-%m-%d %H:%M:%S", gmtime(&t));
 	printf("calculate for: %s\n", date_str);
 	printf("calculate for jd: %f\n", jd);
 	printf("for position: %f, %f\n", obs.lat, obs.lng);
 	printf("for object: %d\n", obj);
 	printf("with horizon: %f\n", horizon);
 	printf("with timezone: UTC +%dh\n", timezone / -3600);
+}
 #endif
-
-	char result_str[64];
-	struct tm result_date;
-	struct ln_date result_ln;
 
 	if (object_rst(obj, jd, horizon, &obs, &rst) == 1)  {
 
@@ -310,50 +278,37 @@ int main(int argc, char *argv[]) {
 	}
 
 	switch (mode) {
+		case MODE_NOW:		jd = jd; break; /* use given (current) date */
 		case MODE_RISE:		jd = rst.rise; break;
 		case MODE_SET:		jd = rst.set; break;
 		case MODE_TRANSIT:	jd = rst.transit; break;
-		case MODE_DAYTIME:	jd = rst.set - rst.rise; break;
-		case MODE_NIGHTTIME:	jd = rst.set - rst.rise; break;
-		case MODE_INVALID:	break;
 	}
 
-	if (mode == MODE_DAYTIME || mode == MODE_NIGHTTIME) {
-		ln_get_date(jd - 0.5, &result_ln);
-
-		if (strstr(format, "%s") != NULL) {
-			char timestamp_str[16];
-			int seconds = round(jd * 86400);
-			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
-			format = strreplace(format, "%s", timestamp_str);
-		}
-
-		result_date.tm_year = -1900;
-		result_date.tm_mon = -1;
-		result_date.tm_mday = 0;
-	}
-	else {
 		// calculate position
-		struct ln_equ_posn result_equ;
-		struct ln_hrz_posn result_hrz;
-		double result_dist;
-		double result_diam;
+		struct object_details result;
 
-		object_pos(obj, jd, &obs, &result_equ, &result_hrz, &result_diam, &result_dist);
+		object_pos(obj, jd, &obs, &result);
 
 		struct ln_hms ra;
-		ln_deg_to_hms(result_equ.ra, &ra);
+		ln_deg_to_hms(result.equ.ra, &ra);
 
-		double az = result_hrz.az + 180;
+		double az = result.hrz.az + 180;
 		az -= (int) (az / 360) * 360;
 
-		printf("diam = %f\n", result_diam);
-		printf("dist au = %f\n", result_dist);
-		printf("dist km = %f\n", AU_METERS * result_dist);
+		char date_str[64];
+
+		printf("diam = %f\n", result.diameter);
+		printf("dist = %f au\n", result.distance);
+		printf("dist = %f km\n", AU_METERS * result.distance);
 		printf("az = %s\n",  ln_get_humanr_location(az));
-		printf("alt = %s\n", ln_get_humanr_location(result_hrz.alt));
+		printf("alt = %s\n", ln_get_humanr_location(result.hrz.alt));
 		printf("ra = %dh%dm%fs\n", ra.hours, ra.minutes, ra.seconds);
-		printf("dec = %s\n", ln_get_humanr_location(result_equ.dec));
+		printf("dec = %s\n", ln_get_humanr_location(result.equ.dec));
+		printf("rise = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.rise));
+		printf("set = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.set));
+		printf("transit = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.transit));
+		printf("daytime = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.set - rst.rise));
+		printf("nighttime = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.rise - rst.set));
 
 		/*if (strstr(format, "%R") != NULL) {
 			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
@@ -363,20 +318,6 @@ int main(int argc, char *argv[]) {
 			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
 			format = strreplace(format, "%s", timestamp_str);
 		}*/
-
-		ln_get_date(jd - timezone / 86400.0, &result_ln);
-
-		result_date.tm_year = result_ln.years - 1900;
-		result_date.tm_mon = result_ln.months - 1;
-		result_date.tm_mday = result_ln.days;
-	}
-
-	result_date.tm_hour = result_ln.hours;
-	result_date.tm_min = result_ln.minutes;
-	result_date.tm_sec = result_ln.seconds;
-
-	strftime(result_str, 64, format, &result_date);
-	printf("%s\n", result_str);
 
 	return EXIT_SUCCESS;
 }
