@@ -38,7 +38,7 @@ char * strfjddur(char *s, size_t max, const char *format, double jd) {
 
 	char *local_format = strdup(format);
 
-	ln_get_date(jd - 0.5, &lnd);
+	ln_get_date(jd + 0.5, &lnd);
 
 	if (strstr(format, "%s") != NULL) {
 		char timestamp_str[16];

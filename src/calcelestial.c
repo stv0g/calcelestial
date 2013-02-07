@@ -307,8 +307,8 @@ int main(int argc, char *argv[]) {
 		printf("rise = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.rise));
 		printf("set = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.set));
 		printf("transit = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.transit));
-		printf("daytime = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.set - rst.rise));
-		printf("nighttime = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.rise - rst.set));
+		printf("daytime = %s\n", strfjddur(date_str, sizeof(date_str), "%H:%M:%S", rst.set - rst.rise));
+		printf("nighttime = %s\n", strfjddur(date_str, sizeof(date_str), "%H:%M:%S", rst.rise - rst.set));
 
 		/*if (strstr(format, "%R") != NULL) {
 			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
