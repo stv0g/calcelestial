@@ -1,7 +1,7 @@
-bin_PROGRAMS = sun
+bin_PROGRAMS = calcelestial
 
-sun_SOURCES = sun_main.c objects.c
-sun_LDADD = -lm -lnova
+calcelestial_SOURCES = calcelestial.c objects.c
+calcelestial_LDADD = -lm -lnova
 
 if GEONAMES_SUPPORT
   noinst_PROGRAMS = geonames
@@ -9,8 +9,8 @@ if GEONAMES_SUPPORT
   geonames_SOURCES = geonames_main.c geonames.c
   geonames_LDADD = $(DEPS_GEONAMES_LIBS)
 
-  sun_SOURCES += geonames.c
-  sun_LDADD += $(DEPS_GEONAMES_LIBS)
+  calcelestial_SOURCES += geonames.c
+  calcelestial_LDADD += $(DEPS_GEONAMES_LIBS)
 
   AM_CFLAGS = $(DEPS_GEONAMES_CFLAGS)
 endif
