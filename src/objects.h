@@ -7,20 +7,20 @@
  * @link	http://www.steffenvogel.de/2012/03/14/cron-jobs-fur-sonnenauf-untergang/
  */
 /*
- * This file is part of sun
+ * This file is part of calcelestial
  *
- * sun is free software: you can redistribute it and/or modify
+ * calcelestial is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * any later version.
  *
- * sun is distributed in the hope that it will be useful,
+ * calcelestial is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with sun. If not, see <http://www.gnu.org/licenses/>.
+ * along with calcelestial. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _OBJECTS_H_
