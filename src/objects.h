@@ -47,12 +47,18 @@ enum object {
 };
 
 struct object_details {
-	struct ln_rst_time rst;	/* rise/set/transit time in JD */
+	double jd;			/* julian date of observation */
+	double tz;			/* timezone of observer */
+
+	double diameter;		/* in arc seconds */
+	double distance;		/* in AU */
+
+	struct ln_lnlat_posn obs;	/* observer */
+	struct ln_rst_time rst;		/* rise/set/transit time in JD */
 
 	struct ln_equ_posn equ;
 	struct ln_hrz_posn hrz;
-	double diameter;		/* in arc seconds */
-	double distance;		/* in AU */
+	const char *azidir;		/* direction of azimuth - like N,S,W,E,NSW,.. */
 };
 
 enum object object_from_name(const char *name, bool casesen);

@@ -1,6 +1,6 @@
 bin_PROGRAMS = calcelestial
 
-calcelestial_SOURCES = calcelestial.c objects.c helpers.c
+calcelestial_SOURCES = calcelestial.c objects.c helpers.c formatter.c
 calcelestial_LDADD = -lm -lnova
 
 if GEONAMES_SUPPORT

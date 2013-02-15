@@ -43,12 +43,13 @@
 #include "../config.h"
 #include "objects.h"
 #include "helpers.h"
+#include "formatter.h"
 
-enum mode {
-	MODE_NOW,
-	MODE_RISE,
-	MODE_SET,
-	MODE_TRANSIT
+enum moment {
+	MOMENT_NOW,
+	MOMENT_RISE,
+	MOMENT_SET,
+	MOMENT_TRANSIT
 };
 
 extern long timezone;
@@ -70,9 +71,9 @@ static struct option long_options[] = {
 	{0}
 };
 
-static char *long_options_descs[] = {
-	"calculate for given object/planet",
-	"calculate rise/set with given twilight (nautic|civil|astronomical)",
+static const char *long_options_descs[] = {
+	"calculate for given object/planet (sun, moon, uranus, ...)",
+	"calculate rise/set with given twilight (nautic, civil, astronomical)",
 	"calculate with given time (eg. 2011-12-25)",
 	"use rise/set/transit time for position calculation",
 	"output format (see strftime (3))",
@@ -86,7 +87,7 @@ static char *long_options_descs[] = {
 	"show version"
 };
 
-void version () {
+void version() {
 	printf("%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 	printf("libnova %s\n", LIBNOVA_VERSION);
 }
@@ -96,7 +97,7 @@ void usage() {
 	printf("Options:\n");
 
 	struct option *op = long_options;
-	char **desc = long_options_descs;
+	const char **desc = long_options_descs;
 	while (op->name && desc) {
 		printf("  -%c, --%s%s%s\n", op->val, op->name, (strlen(op->name) <= 7) ? "\t\t" : "\t", *desc);
 		op++;
@@ -110,17 +111,18 @@ void usage() {
 int main(int argc, char *argv[]) {
 	/* default options */
 	double horizon = LN_SOLAR_STANDART_HORIZON; /* 50 Bogenminuten; no twilight, normal sunset/rise */
-	char *format = "%H:%M:%S";
+	char *format = "%Y-%m-%d %H:%M:%S";
 	char *query = NULL;
 	bool error = false;
-
-	enum mode mode = MODE_NOW;
-	enum object obj = OBJECT_INVALID;
+	bool verbose = false;
 
 	double jd;
-	struct tm date = { 0 };
-	struct ln_rst_time rst;
+
+	enum moment moment = MOMENT_NOW;
+	enum object obj = OBJECT_INVALID;
+
 	struct ln_lnlat_posn obs = { DBL_MAX, DBL_MAX };
+	struct object_details result;
 
 	tzset();
 
@@ -132,8 +134,7 @@ int main(int argc, char *argv[]) {
 
 	/* parse command line arguments */
 	while (1) {
-		int optidx;
-		int c = getopt_long(argc, argv, "+hvt:d:f:a:o:q:z:p:", long_options, &optidx);
+		int c = getopt_long(argc, argv, "+hvt:d:f:a:o:q:z:p:m:H:", long_options, NULL);
 
 		/* detect the end of the options. */
 		if (c == -1) break;
@@ -150,34 +151,35 @@ int main(int argc, char *argv[]) {
 					horizon = LN_SOLAR_ASTRONOMICAL_HORIZON;
 				}
 				else {
-					fprintf(stderr, "invalid twilight: %s\n", optarg);
-					error = true;
+					char *endptr;
+					horizon = strtod(optarg, &endptr);
+
+					if (endptr == optarg) {
+						fprintf(stderr, "invalid twilight: %s\n", optarg);
+						error = true;
+					}
 				}
 				break;
 
 			case 't':
-				if (strptime(optarg, "%Y-%m-%d", &date) == NULL) {
-					fprintf(stderr, "invalid date: %s\n", optarg);
-					error = true;
-				}
-				else {
-					time_t t = mktime(&date);
-					jd = ln_get_julian_from_timet(&t);
-
-#ifdef DEBUG
-				        char date_str[64];
-				        strftime(date_str, 64, "%Y-%m-%d", &date);
-				        printf("parsed date: %s\n", date_str);
-#endif
-
+				{
+					struct tm date;
+					if (strptime(optarg, "%Y-%m-%d %H:%M:%S", &date) == NULL) {
+						fprintf(stderr, "invalid date: %s\n", optarg);
+						error = true;
+					}
+					else {
+						time_t t = mktime(&date);
+						jd = ln_get_julian_from_timet(&t);
+					}
 				}
 				break;
 
 			case 'm':
-				if (strcmp(optarg, "now") == 0) mode = MODE_NOW;
-				else if (strcmp(optarg, "rise") == 0) mode = MODE_RISE;
-				else if (strcmp(optarg, "set") == 0) mode = MODE_SET;
-				else if (strcmp(optarg, "transit") == 0) mode = MODE_TRANSIT;
+				if (strcmp(optarg, "now") == 0) moment = MOMENT_NOW;
+				else if (strcmp(optarg, "rise") == 0) moment = MOMENT_RISE;
+				else if (strcmp(optarg, "set") == 0) moment = MOMENT_SET;
+				else if (strcmp(optarg, "transit") == 0) moment = MOMENT_TRANSIT;
 				else {
 					fprintf(stderr, "invalid moment: %s\n", optarg);
 					error = true;
@@ -256,7 +258,6 @@ int main(int argc, char *argv[]) {
 	}
 
 #ifdef DEBUG
-{
 	char date_str[64];
 	time_t t;
 	ln_get_timet_from_julian(jd, &t);
@@ -268,56 +269,25 @@ int main(int argc, char *argv[]) {
 	printf("for object: %d\n", obj);
 	printf("with horizon: %f\n", horizon);
 	printf("with timezone: UTC +%dh\n", timezone / -3600);
-}
 #endif
 
-	if (object_rst(obj, jd, horizon, &obs, &rst) == 1)  {
-
-                fprintf(stderr, "object is circumpolar\n");
-		return EXIT_CIRCUMPOLAR;
-	}
-
-	switch (mode) {
-		case MODE_NOW:		jd = jd; break; /* use given (current) date */
-		case MODE_RISE:		jd = rst.rise; break;
-		case MODE_SET:		jd = rst.set; break;
-		case MODE_TRANSIT:	jd = rst.transit; break;
-	}
-
-		// calculate position
-		struct object_details result;
-
-		object_pos(obj, jd, &obs, &result);
-
-		struct ln_hms ra;
-		ln_deg_to_hms(result.equ.ra, &ra);
-
-		double az = result.hrz.az + 180;
-		az -= (int) (az / 360) * 360;
-
-		char date_str[64];
-
-		printf("diam = %f\n", result.diameter);
-		printf("dist = %f au\n", result.distance);
-		printf("dist = %f km\n", AU_METERS * result.distance);
-		printf("az = %s\n",  ln_get_humanr_location(az));
-		printf("alt = %s\n", ln_get_humanr_location(result.hrz.alt));
-		printf("ra = %dh%dm%fs\n", ra.hours, ra.minutes, ra.seconds);
-		printf("dec = %s\n", ln_get_humanr_location(result.equ.dec));
-		printf("rise = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.rise));
-		printf("set = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.set));
-		printf("transit = %s\n", strfjd(date_str, sizeof(date_str), "%H:%M:%S", rst.transit));
-		printf("daytime = %s\n", strfjddur(date_str, sizeof(date_str), "%H:%M:%S", rst.set - rst.rise));
-		printf("nighttime = %s\n", strfjddur(date_str, sizeof(date_str), "%H:%M:%S", rst.rise - rst.set));
-
-		/*if (strstr(format, "%R") != NULL) {
-			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
-			format = strreplace(format, "%s", timestamp_str);
+	if (object_rst(obj, jd, horizon, &obs, &result.rst) == 1)  {
+		if (moment != MOMENT_NOW) {
+	                fprintf(stderr, "object is circumpolar\n");
+			return EXIT_CIRCUMPOLAR;
 		}
-		if (strstr(format, "%E") != NULL) {
-			snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
-			format = strreplace(format, "%s", timestamp_str);
-		}*/
+	}
+	else switch (moment) {
+		case MOMENT_NOW:	result.jd = jd; break;
+		case MOMENT_RISE:	result.jd = result.rst.rise; break;
+		case MOMENT_SET:	result.jd = result.rst.set; break;
+		case MOMENT_TRANSIT:	result.jd = result.rst.transit; break;
+	}
+
+	result.obs = obs;
+
+	object_pos(obj, result.jd, &obs, &result);
+	format_result(format, &result);
 
 	return EXIT_SUCCESS;
 }

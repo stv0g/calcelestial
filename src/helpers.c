@@ -81,7 +81,7 @@ char * strfjd(char *s, size_t max, const char *format, double jd) {
 	return s;
 }
 
-char * strreplace(char *subject, char *search, char *replace) {
+char * strreplace(char *subject, const char *search, const char *replace) {
 	int new_len = strlen(subject);
 	int search_len = strlen(search);
 	int replace_len = strlen(replace);

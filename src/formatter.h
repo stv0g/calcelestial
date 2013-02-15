@@ -1,5 +1,5 @@
 /**
- * Helper functions
+ * Formatter
  *
  * @copyright	2012 Steffen Vogel
  * @license	http://www.gnu.org/licenses/gpl.txt GNU Public License
@@ -23,11 +23,21 @@
  * along with calcelestial. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _HELPERS_H_
-#define _HELPERS_H_
+#ifndef _FORMATTER_H_
+#define _FORMATTER_H_
 
-char * strfjddur(char *s, size_t max, const char *format, double jd);
-char * strfjd(char *s, size_t max, const char *format, double jd);
-char * strreplace(char *subject, const char *search, const char *replace);
+#include <libnova/libnova.h>
 
-#endif /* _HELPERS_H_ */
+#define PRECISION "3"
+
+enum specifier_fmt { DOUBLE, STRING, INTEGER };
+
+struct specifiers {
+	const char *token;
+	void *data;
+	enum specifier_fmt format;
+};
+
+void format_result(const char *format, struct object_details *result);
+
+#endif /* _FORMATTER_H_ */

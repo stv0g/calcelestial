@@ -75,7 +75,6 @@ enum object object_from_name(const char *name, bool casesen) {
 
 void object_pos_sun(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_solar_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_earth_solar_dist(jd);
 	details->diameter = ln_get_solar_sdiam(jd);
@@ -83,7 +82,6 @@ void object_pos_sun(double jd, struct ln_lnlat_posn *obs, struct object_details 
 
 void object_pos_moon(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_lunar_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_lunar_earth_dist(jd) / AU_METERS;
 	details->diameter = ln_get_lunar_sdiam(jd);
@@ -91,7 +89,6 @@ void object_pos_moon(double jd, struct ln_lnlat_posn *obs, struct object_details
 
 void object_pos_mars(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_mars_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_mars_earth_dist(jd);
 	details->diameter = ln_get_mars_sdiam(jd);
@@ -99,7 +96,6 @@ void object_pos_mars(double jd, struct ln_lnlat_posn *obs, struct object_details
 
 void object_pos_neptune(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_neptune_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_neptune_earth_dist(jd);
 	details->diameter = ln_get_neptune_sdiam(jd);
@@ -107,7 +103,6 @@ void object_pos_neptune(double jd, struct ln_lnlat_posn *obs, struct object_deta
 
 void object_pos_jupiter(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_jupiter_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_jupiter_earth_dist(jd);
 	details->diameter = ln_get_jupiter_equ_sdiam(jd);
@@ -115,7 +110,6 @@ void object_pos_jupiter(double jd, struct ln_lnlat_posn *obs, struct object_deta
 
 void object_pos_mercury(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_mercury_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_mercury_earth_dist(jd);
 	details->diameter = ln_get_mercury_sdiam(jd);
@@ -123,7 +117,6 @@ void object_pos_mercury(double jd, struct ln_lnlat_posn *obs, struct object_deta
 
 void object_pos_uranus(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_uranus_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_uranus_earth_dist(jd);
 	details->diameter = ln_get_uranus_sdiam(jd);
@@ -131,7 +124,6 @@ void object_pos_uranus(double jd, struct ln_lnlat_posn *obs, struct object_detai
 
 void object_pos_saturn(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_saturn_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_saturn_earth_dist(jd);
 	details->diameter = ln_get_saturn_equ_sdiam(jd);
@@ -139,7 +131,6 @@ void object_pos_saturn(double jd, struct ln_lnlat_posn *obs, struct object_detai
 
 void object_pos_venus(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_venus_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_venus_earth_dist(jd);
 	details->diameter = ln_get_venus_sdiam(jd);
@@ -147,7 +138,6 @@ void object_pos_venus(double jd, struct ln_lnlat_posn *obs, struct object_detail
 
 void object_pos_pluto(double jd, struct ln_lnlat_posn *obs, struct object_details *details) {
 	ln_get_pluto_equ_coords(jd, &details->equ);
-	ln_get_hrz_from_equ(&details->equ, obs, jd, &details->hrz);
 
 	details->distance = ln_get_pluto_earth_dist(jd);
 	details->diameter = ln_get_pluto_sdiam(jd);
