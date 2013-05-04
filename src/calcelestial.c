@@ -26,18 +26,20 @@
  */
 
 #define _XOPEN_SOURCE 700
+#define _BSD_SOURCE 1 /* for tm_gmtoff field in struct tm */
+
 #define EXIT_CIRCUMPOLAR 2
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <limits.h>
 #include <getopt.h>
 #include <float.h>
 #include <math.h>
 #include <libgen.h>
 #include <time.h>
-#include <sys/time.h>
 #include <libnova/libnova.h>
 
 #include "../config.h"
@@ -52,13 +54,12 @@ enum moment {
 	MOMENT_TRANSIT
 };
 
-extern long timezone;
-
 static struct option long_options[] = {
 	{"object",	required_argument, 0, 'p'},
 	{"horizon",	required_argument, 0, 'H'},
 	{"time",	required_argument, 0, 't'},
 	{"moment",	required_argument, 0, 'm'},
+	{"next",	no_argument,	   0, 'n'},
 	{"format",	required_argument, 0, 'f'},
 	{"lat",		required_argument, 0, 'a'},
 	{"lon",		required_argument, 0, 'o'},
@@ -66,23 +67,26 @@ static struct option long_options[] = {
 	{"query",	required_argument, 0, 'q'},
 #endif
 	{"timezone",	required_argument, 0, 'z'},
+	{"universal",	no_argument,	   0, 'u'},
 	{"help",	no_argument,	   0, 'h'},
 	{"version",	no_argument,	   0, 'v'},
 	{0}
 };
 
 static const char *long_options_descs[] = {
-	"calculate for given object/planet (sun, moon, uranus, ...)",
-	"calculate rise/set with given twilight (nautic, civil, astronomical)",
-	"calculate with given time (eg. 2011-12-25)",
-	"use rise/set/transit time for position calculation",
-	"output format (see strftime (3))",
-	"geographical latitude (-90° to 90°)",
-	"geographical longitude (-180° to 180°)",
+	"calc for celestial object: sun, moon, mars, neptune,\n\t\t\t jupiter, mercury, uranus, saturn, venus or pluto",
+	"calc rise/set time with twilight: nautic, civil or astronomical",
+	"calc at given time: YYYY-MM-DD [HH:MM:SS]",
+	"calc position at moment of: rise, set, transit",
+	"use rise, set, transit time of tomorrow",
+	"output format: see strftime (3) and calcelestial (1) for more details",
+	"geographical latitude of observer: -90° to 90°",
+	"geographical longitude of oberserver: -180° to 180°",
 #ifdef GEONAMES_SUPPORT
-	"query geonames.org for geographical position",
+	"query geonames.org for geographical coordinates",
 #endif
-	"use timezone for output",
+	"override system timezone",
+	"use universial time for parsing and formatting",
 	"show this help",
 	"show version"
 };
@@ -104,19 +108,24 @@ void usage() {
 		desc++;
 	}
 
-	printf("\nA combination of --lat, --lon or --query is required.\n");
+	printf("\nA combination of --lat & --lon or --query is required.\n");
 	printf("Please report bugs to: %s\n", PACKAGE_BUGREPORT);
 }
 
 int main(int argc, char *argv[]) {
 	/* default options */
 	double horizon = LN_SOLAR_STANDART_HORIZON; /* 50 Bogenminuten; no twilight, normal sunset/rise */
-	char *format = "%Y-%m-%d %H:%M:%S";
+	int tz = INT_MAX;
+//	char *format = "time: %Y-%m-%d %H:%M:%S az: §a (§s) alt: §h";
+	char *format = "%H:%M"
 	char *query = NULL;
 	bool error = false;
-	bool verbose = false;
+	bool utc = false;
+	bool next = false;
 
+	time_t t;
 	double jd;
+	struct tm *date = NULL;
 
 	enum moment moment = MOMENT_NOW;
 	enum object obj = OBJECT_INVALID;
@@ -124,17 +133,12 @@ int main(int argc, char *argv[]) {
 	struct ln_lnlat_posn obs = { DBL_MAX, DBL_MAX };
 	struct object_details result;
 
-	tzset();
-
-	/* default time: now */
-	jd = ln_get_julian_from_sys();
-
 	/* parse planet/obj */
-	obj = object_from_name(basename(argv[0]), false);
+	obj = object_from_name(basename(argv[0]));
 
 	/* parse command line arguments */
 	while (1) {
-		int c = getopt_long(argc, argv, "+hvt:d:f:a:o:q:z:p:m:H:", long_options, NULL);
+		int c = getopt_long(argc, argv, "+hvnut:d:f:a:o:q:z:p:m:H:", long_options, NULL);
 
 		/* detect the end of the options. */
 		if (c == -1) break;
@@ -162,28 +166,29 @@ int main(int argc, char *argv[]) {
 				break;
 
 			case 't':
-				{
-					struct tm date;
-					if (strptime(optarg, "%Y-%m-%d %H:%M:%S", &date) == NULL) {
-						fprintf(stderr, "invalid date: %s\n", optarg);
-						error = true;
-					}
-					else {
-						time_t t = mktime(&date);
-						jd = ln_get_julian_from_timet(&t);
-					}
+				date = malloc(sizeof(struct tm));
+				date->tm_isdst = -1; /* update dst */
+				if (strptime(optarg, "%Y-%m-%d %H:%M:%S", date)) { }
+				else if (strptime(optarg, "%Y-%m-%d", date)) { }
+				else {
+					free(date);
+					fprintf(stderr, "invalid date: %s\n", optarg);
+					error = true;
 				}
 				break;
 
 			case 'm':
-				if (strcmp(optarg, "now") == 0) moment = MOMENT_NOW;
-				else if (strcmp(optarg, "rise") == 0) moment = MOMENT_RISE;
+				if (strcmp(optarg, "rise") == 0) moment = MOMENT_RISE;
 				else if (strcmp(optarg, "set") == 0) moment = MOMENT_SET;
 				else if (strcmp(optarg, "transit") == 0) moment = MOMENT_TRANSIT;
 				else {
 					fprintf(stderr, "invalid moment: %s\n", optarg);
 					error = true;
 				}
+				break;
+
+			case 'n':
+				next = true;
 				break;
 
 			case 'f':
@@ -204,11 +209,16 @@ int main(int argc, char *argv[]) {
 #endif
 
 			case 'p':
-				obj = object_from_name(optarg, false);
+				obj = object_from_name(optarg);
 				break;
 
 			case 'z':
-				timezone = -3600 * atoi(optarg);
+				tz = atoi(optarg);
+				break;
+
+			case 'u':
+				utc = true;
+				tz = 0;
 				break;
 
 			case 'v':
@@ -228,7 +238,7 @@ int main(int argc, char *argv[]) {
 
 	/* validate obj */
 	if (obj == OBJECT_INVALID) {
-		fprintf(stderr, "invalid object\n");
+		fprintf(stderr, "invalid object, use --object\n");
 		error = true;
 	}
 
@@ -242,11 +252,11 @@ int main(int argc, char *argv[]) {
 
 	/* validate observer coordinates */
 	if (fabs(obs.lat) > 90) {
-		fprintf(stderr, "invalid latitude\n");
+		fprintf(stderr, "invalid latitude, use --lat\n");
 		error = true;
 	}
 	if (fabs(obs.lng) > 180) {
-		fprintf(stderr, "invalid longitude\n");
+		fprintf(stderr, "invalid longitude, use --lon\n");
 		error = true;
 	}
 
@@ -257,36 +267,55 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-#ifdef DEBUG
-	char date_str[64];
-	time_t t;
-	ln_get_timet_from_julian(jd, &t);
+	/* calculate julian date */
+	if (date) {
+		t = (utc) ? mktimeutc(date) : mktime(date);
+		free(date);
+	}
+	else {
+		t = time(NULL);
+	}
+	jd = ln_get_julian_from_timet(&t);
+	date = localtime(&t);
 
-	strftime(date_str, sizeof(date_str), "%Y-%m-%d %H:%M:%S", gmtime(&t));
-	printf("calculate for: %s\n", date_str);
+	result.tz = (tz == INT_MAX) ? date->tm_gmtoff / 3600 : tz;
+	result.obs = obs;
+
+#ifdef DEBUG
 	printf("calculate for jd: %f\n", jd);
-	printf("for position: %f, %f\n", obs.lat, obs.lng);
-	printf("for object: %d\n", obj);
+	printf("calculate for ts: %d\n", t);
+	printf("for position: N %f, E %f\n", obs.lat, obs.lng);
+	printf("for object: %s\n", object_to_name(obj));
 	printf("with horizon: %f\n", horizon);
-	printf("with timezone: UTC +%dh\n", timezone / -3600);
+	printf("with timezone: %d\n", result.tz);
 #endif
 
-	if (object_rst(obj, jd, horizon, &obs, &result.rst) == 1)  {
+	/* calc rst date */
+rst:	if (object_rst(obj, jd - .5, horizon, &result.obs, &result.rst) == 1)  {
 		if (moment != MOMENT_NOW) {
 	                fprintf(stderr, "object is circumpolar\n");
 			return EXIT_CIRCUMPOLAR;
 		}
 	}
-	else switch (moment) {
-		case MOMENT_NOW:	result.jd = jd; break;
-		case MOMENT_RISE:	result.jd = result.rst.rise; break;
-		case MOMENT_SET:	result.jd = result.rst.set; break;
-		case MOMENT_TRANSIT:	result.jd = result.rst.transit; break;
+	else {
+		switch (moment) {
+			case MOMENT_NOW:	result.jd = jd; break;
+			case MOMENT_RISE:	result.jd = result.rst.rise; break;
+			case MOMENT_SET:	result.jd = result.rst.set; break;
+			case MOMENT_TRANSIT:	result.jd = result.rst.transit; break;
+		}
+
+		if (next && result.jd < jd) {
+			jd++;
+			next = false;
+			goto rst;
+		}
 	}
 
-	result.obs = obs;
+	/* calc position */
+	object_pos(obj, result.jd, &result);
 
-	object_pos(obj, result.jd, &obs, &result);
+	/* format & output */
 	format_result(format, &result);
 
 	return EXIT_SUCCESS;
