@@ -190,6 +190,7 @@ top_srcdir = @top_srcdir@
 calcelestial_SOURCES = calcelestial.c objects.c helpers.c formatter.c \
 	$(am__append_1)
 calcelestial_LDADD = -lm -lnova $(am__append_2)
+OBJS = sun moon mars neptune jupiter mercury uranus saturn venus pluto
 @GEONAMES_SUPPORT_TRUE@geonames_SOURCES = geonames_main.c geonames.c
 @GEONAMES_SUPPORT_TRUE@geonames_LDADD = $(DEPS_GEONAMES_LIBS)
 @GEONAMES_SUPPORT_TRUE@AM_CFLAGS = $(DEPS_GEONAMES_CFLAGS)
@@ -509,13 +510,10 @@ uninstall-am: uninstall-binPROGRAMS
 	tags uninstall uninstall-am uninstall-binPROGRAMS
 
 
-#OBJS = sun moon mars neptune jupiter mercury uranus saturn venus pluto
-#for OBJ in $OBJS
-#do
-#	ln -s calcelestial $OBJ
-#done
-#
-# for OBJ in sun moon mars neptune jupiter mercury uranus saturn venus pluto; do ln -s calcelestial $OBJ; done
+links:
+	for OBJ in $(OBJS); do \
+		ln -s calcelestial $$OBJ; \
+	done
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
