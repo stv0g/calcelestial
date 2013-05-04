@@ -30,6 +30,7 @@
 
 #include <libnova/libnova.h>
 
+#include "../config.h"
 #include "helpers.h"
 
 char * strfjddur(char *s, size_t max, const char *format, double jd) {
@@ -59,25 +60,13 @@ char * strfjddur(char *s, size_t max, const char *format, double jd) {
 	return s;
 }
 
-char * strfjd(char *s, size_t max, const char *format, double jd) {
+char * strfjd(char *s, size_t max, const char *format, double jd, int tz) {
 	struct tm tmd;
-	struct ln_date lnd;
 
-//	time_t t;
-//	ln_get_timet_from_julian(jd, &t);
-//	strftime(date_str, sizeof(date_str), "%Y-%m-%d %H:%M:%S", gmtime(&t));
-//	ln_get_date(jd - timezone / 86400.0, &lnd);
+	time_t t;
+	ln_get_timet_from_julian(jd + tz / 24.0, &t);
+	strftime(s, max, format, gmtime(&t));
 
-	ln_get_date(jd, &lnd);
-
-	tmd.tm_year = lnd.years - 1900;
-	tmd.tm_mon = lnd.months - 1;
-	tmd.tm_mday = lnd.days;
-	tmd.tm_hour = lnd.hours;
-	tmd.tm_min = lnd.minutes;
-	tmd.tm_sec = lnd.seconds;
-
-	strftime(s, max, format, &tmd);
 	return s;
 }
 
@@ -106,3 +95,22 @@ char * strreplace(char *subject, const char *search, const char *replace) {
 	strcpy(new + strlen(new), old);
 	return new;
 }
+
+time_t mktimeutc(struct tm *date) {
+	time_t result;
+	char *tz;
+
+	tz = getenv("TZ");
+	setenv("TZ", "", 1);
+
+	tzset();
+	result = mktime(date);
+
+	if (tz) setenv("TZ", tz, 1);
+	else unsetenv("TZ");
+
+	tzset();
+
+	return result;
+}
+

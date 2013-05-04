@@ -27,7 +27,9 @@
 #define _HELPERS_H_
 
 char * strfjddur(char *s, size_t max, const char *format, double jd);
-char * strfjd(char *s, size_t max, const char *format, double jd);
+char * strfjd(char *s, size_t max, const char *format, double jd, int tz);
 char * strreplace(char *subject, const char *search, const char *replace);
+
+time_t mktimeutc(struct tm *date);
 
 #endif /* _HELPERS_H_ */
