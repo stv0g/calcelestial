@@ -1,0 +1,139 @@
+.TH CALCELESTIAL "1" "May 2013" "calcelestial 0.1" "User Commands"
+.SH NAME
+calcelestial - calculates positions, rise, set and transit times of celestial bodies
+.SH DESCRIPTION
+Together with tools like 'at', 'cron' and 'date' it can be used to schedule arbitrary tasks at planet and moon rise, set or transit times.
+.SH SYNOPSIS
+.B calcelestial -p [object] -q [location] -m [moment] -f [format]
+.SH OPTIONS
+.TP
+.B -p, --object
+available objects are:
+.IP
+.RS
+.RS
+sun
+.br
+moon
+.br
+mars
+.br
+neptune
+.br
+jupiter
+.br
+mercury
+.br
+uranus
+.br
+saturn
+.br
+venus
+.br
+pluto
+.RE
+.RE
+.TP
+.B -H, --horizon
+calc rise/set time with twilight: nautic, civil or astronomical
+.TP
+.B -t, --time
+calc at given time: YYYY-MM-DD [HH:MM:SS]
+.TP
+.B -m, --moment
+calc position at moment of: rise, set, transit
+.TP
+.B -n, --next
+use rise, set, transit time of tomorrow
+.TP
+.B -f, --format
+output format: see \fBstrftime\fR(3) and FORMAT section below for more details
+.TP
+.B -a, --lat
+geographical latitude of observer: -90 to 90deg
+.TP
+.B -o, --lon
+geographical longitude of oberserver: -180 to 180deg
+.TP
+.B -q, --query
+query geonames.org for geographical coordinates
+.TP
+.B -z, --timezone
+override system timezone
+.TP
+.B -u, --universal
+use universial time for parsing and formatting
+.TP
+.B -h, --help
+show this help
+.TP
+.B -v, --version
+show version
+.PP
+.SH FORMAT
+calcelestial supports all conversion specifications as documented in \fBstrftime\fR(3).
+.br
+additionally these special specifiers have been added:
+.TP
+.B %J
+Julian Date
+.TP
+.B §r
+equatorial right ascension in degrees
+.TP
+.B §d
+equatorial declination in degrees
+.TP
+.B §a
+azimut in degrees from north
+.TP
+.B §h
+altitude in degrees
+.TP
+.B §d
+diameter in arcseconds
+.TP
+.B §e
+distance in kilometer
+.TP
+.B §t
+observer timezone in hours west
+.TP
+.B §A
+observer latitude in degrees north
+.TP
+.B §O
+observer longitude in degrees east
+.TP
+.B §s
+azimuth direction as letter, 
+.TP
+.B §§
+A literal '§' character
+.SH NOTES
+.P
+A combination of \fB--lat\fR & \fB--lon\fR or \fB--query\fR is required.
+.P
+The argument \fB-q, --query\fR fetches coordinates from the geonames.org database. Fetched coordinates will be cached locally. So an active internet connection is only required for the first time.
+Please be aware of possible privacy issues!
+.P
+When symlinking the calcelestial binary to 'sun', 'moon' etc., the argument \fB-p, --object\fR is negligible:
+.IP
+.B sun -m rise -q Aachen
+.SH EXAMPLES
+.TP
+\fBecho "~/bin/enable-lightning" | at $(calcelestial -p sun -m set -q Frankfurt -H civil)\fR
+enable lightning at sunset in Frankfurt
+.TP
+\fBshutdown $(date -d "+10min $(calcelestial -m transit -a 50.55 -o -6.2)" +%H:%M)\fR
+shutdown system 10 minutes after solar noon in Berlin
+.TP
+\fBnvram-wakeup -s $(date -d "-10min $(calcelestial -m rise -q Aachen)" +%s)\fR
+start system 10 minutes before sunrise in Aachen
+.SH FILES
+geonames.org queries will be cached in \fI~/.geonames.cache\fR
+.SH AUTHOR
+calcelestial is written by Steffen Vogel <post@steffenvogel.de>
+.SH BUGS
+.TP
+\fB%s\fR formatstring has buggy timezone offset in conjunction with daylight savings

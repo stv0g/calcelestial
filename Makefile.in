@@ -249,7 +249,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = src
 dist_doc_DATA = README
-man_MANS = doc/sun.1
+man_MANS = doc/calcelestial.1
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
