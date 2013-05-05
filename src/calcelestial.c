@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
 	double horizon = LN_SOLAR_STANDART_HORIZON; /* 50 Bogenminuten; no twilight, normal sunset/rise */
 	int tz = INT_MAX;
 //	char *format = "time: %Y-%m-%d %H:%M:%S az: §a (§s) alt: §h";
-	char *format = "%H:%M"
+	char *format = "%H:%M";
 	char *query = NULL;
 	bool error = false;
 	bool utc = false;
