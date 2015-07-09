@@ -46,6 +46,7 @@
 #include "objects.h"
 #include "helpers.h"
 #include "formatter.h"
+#include "geonames.h"
 
 enum moment {
 	MOMENT_NOW,

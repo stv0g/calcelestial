@@ -26,7 +26,7 @@
 #ifndef _GEONAMES_H_
 #define _GEONAMES_H_
 
-#include <json/json.h>
+#include <json-c/json.h>
 
 #define GEONAMES_CACHE_SUPPORT 1
 #define GEONAMES_CACHE_FILE ".geonames.cache" /* in users home dir */

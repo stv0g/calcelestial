@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include <curl/curl.h>
-#include <json/json.h>
+#include <json-c/json.h>
 
 #include "../config.h"
 #include "geonames.h"
@@ -59,7 +59,7 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 			json_tokener_free(jtok);
 		}
 		else if (jtok->err != json_tokener_continue) {
-			fprintf(stderr, "parse error: %s\r\n", json_tokener_errors[jtok->err]);
+			fprintf(stderr, "parse error: %s\r\n", json_tokener_get_error(jtok));
 			*(void **) userp = NULL;
 			json_tokener_free(jtok);
 		}
