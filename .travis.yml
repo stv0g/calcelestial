@@ -4,7 +4,7 @@ addons:
   apt:
     packages:
       - libcurl4-openssl-dev
-      - libjson-c-dev
+      - libjson0-dev
 
 before_install:
   - autoreconf -i
