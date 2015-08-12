@@ -1,0 +1,7 @@
+language: c
+
+addons:
+  apt:
+    packages:
+      - libcurl-dev
+      - libjson-c-dev
