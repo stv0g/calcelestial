@@ -6,7 +6,7 @@
  * @copyright	2012 Steffen Vogel
  * @license	http://www.gnu.org/licenses/gpl.txt GNU Public License
  * @author	Steffen Vogel <post@steffenvogel.de>
- * @link	http://www.steffenvogel.de/2012/03/14/cron-jobs-fur-sonnenauf-untergang/
+ * @link	https://www.noteblok.net/2012/03/14/cron-jobs-fur-sonnenauf-untergang/
  */
 /*
  * This file is part of calcelestial
