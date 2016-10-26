@@ -11,8 +11,10 @@ AC_PROG_CC
 AC_PROG_LN_S
 
 # Checks for libraries.
+AC_CHECK_LIB([nova],[ln_get_version],[],[AC_MSG_ERROR([Couldn't find libnova])])
 
 # Checks for header files.
+AC_CHECK_HEADERS([libnova/libnova.h],[],[AC_MSG_ERROR([Couldn't find or include libnova headers.h])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 
@@ -26,6 +28,9 @@ AC_CONFIG_FILES([
   Makefile
   src/Makefile
 ])
+
+# Workaround for https://github.com/stv0g/calcelestial/issues/5
+AM_CXXFLAGS="$AM_CFLAGS -Wno-deprecated-declarations"
 
 # geonames.org support
 AC_ARG_ENABLE(
@@ -51,7 +56,7 @@ AC_ARG_ENABLE(
 
 if test x"$debug" = x"yes"; then
     AC_DEFINE([DEBUG], [], [enable debugging])
-    AM_CXXFLAGS="$AM_CXXFLAGS -g -Wall -Werror -Wno-uninitialized -O0 -fno-omit-frame-pointer -Woverloaded-virtual -Wno-system-headers"
+    AM_CXXFLAGS="$AM_CXXFLAGS -g -Wall -Werror -Wno-uninitialized -O0 -fno-omit-frame-pointer"
 else
     AM_CXXFLAGS="$AM_CXXFLAGS -O3"
 fi

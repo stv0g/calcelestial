@@ -1,7 +1,7 @@
 bin_PROGRAMS = calcelestial
 
 calcelestial_SOURCES = calcelestial.c objects.c helpers.c formatter.c
-calcelestial_LDADD = -lm -lnova
+calcelestial_LDADD = -lm
 
 OBJS = sun moon mars neptune jupiter mercury uranus saturn venus pluto
 
