@@ -37,13 +37,9 @@ AC_ARG_ENABLE(
 
 AM_CONDITIONAL([GEONAMES_SUPPORT], [test x"$enable_geonames" = x"yes"])
 if test x"$enable_geonames" = x"yes"; then
-    AC_DEFINE([GEONAMES_SUPPORT], [], [Geonames geocoding])
+    AC_DEFINE([GEONAMES_SUPPORT], [1], [compile with geonames.org lookup capabilities])
     PKG_CHECK_MODULES([DEPS_GEONAMES], [libcurl >= 7.21, json-c >= 0.11])
 fi
-
-
-AC_DEFINE([GEONAMES_SUPPORT], [1], [compile with geonames.org lookup capabilities])
-
 
 # debug compilation support
 AC_ARG_ENABLE(
