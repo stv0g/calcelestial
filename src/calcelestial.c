@@ -283,12 +283,12 @@ int main(int argc, char *argv[]) {
 	result.obs = obs;
 
 #ifdef DEBUG
-	printf("calculate for jd: %f\n", jd);
-	printf("calculate for ts: %ld\n", t);
-	printf("for position: N %f, E %f\n", obs.lat, obs.lng);
-	printf("for object: %s\n", object_to_name(obj));
-	printf("with horizon: %f\n", horizon);
-	printf("with timezone: %d\n", result.tz);
+	printf("debug: calculate for jd: %f\n", jd);
+	printf("debug: calculate for ts: %ld\n", t);
+	printf("debug: for position: N %f, E %f\n", obs.lat, obs.lng);
+	printf("debug: for object: %s\n", object_to_name(obj));
+	printf("debug: with horizon: %f\n", horizon);
+	printf("debug: with timezone: %d\n", result.tz);
 #endif
 
 	/* calc rst date */

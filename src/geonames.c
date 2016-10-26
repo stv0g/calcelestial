@@ -50,8 +50,8 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 
 	if (jtok->err == json_tokener_continue) {
 #ifdef DEBUG
-		printf("got chunk: %zu * %zu = %zu bytes\r\n", size, nmemb, realsize);
-		printf("   %.*s\r\n", realsize, (char *) contents);
+		printf("debug: received chunk: %zu * %zu = %zu bytes\r\n", size, nmemb, realsize);
+		printf("   %.*s\r\n", (int) realsize, (char *) contents);
 #endif
 
 		jobj = json_tokener_parse_ex(jtok, (char *) contents, realsize);
@@ -61,7 +61,8 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 			json_tokener_free(jtok);
 		}
 		else if (jtok->err != json_tokener_continue) {
-			fprintf(stderr, "parse error: %\r\n", json_tokener_get_error(jtok));
+			const char *err = json_tokener_error_desc(json_tokener_get_error(jtok));
+			fprintf(stderr, "json parse error: %s\r\n", err);
 			*(void **) userp = NULL;
 			json_tokener_free(jtok);
 		}
@@ -75,7 +76,7 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 #ifdef GEONAMES_CACHE_SUPPORT
 	if (geonames_cache_lookup(place, result, name, n) == 0) {
 #ifdef DEBUG
-		printf("using cached geonames entry\n");
+		printf("debug: using cached geonames entry\n");
 #endif
 		return 0;
 	}
@@ -100,7 +101,7 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 	snprintf(request_url, len, request_url_tpl, place, username);
 
 #ifdef DEBUG
-	printf("request url: %s\r\n", request_url);
+	printf("debug: request url: %s\r\n", request_url);
 #endif
 
 	curl_easy_setopt(ch, CURLOPT_URL, request_url);
@@ -125,7 +126,7 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 #ifdef GEONAMES_CACHE_SUPPORT
 			geonames_cache_store(place, result, name, n);
 #ifdef DEBUG
-			printf("storing cache entry\n");
+			printf("debug: storing cache entry\n");
 #endif
 #endif
 		}
