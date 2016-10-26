@@ -53,6 +53,7 @@ void object_pos(enum object obj, double jd, struct object_details *details) {
 		case OBJECT_SATURN:	return object_pos_saturn(jd, details);
 		case OBJECT_VENUS:	return object_pos_venus(jd, details);
 		case OBJECT_PLUTO:	return object_pos_pluto(jd, details);
+		default: ;
 	}
 }
 
@@ -68,6 +69,7 @@ int object_rst(enum object obj, double jd, double horizon, struct ln_lnlat_posn 
 		case OBJECT_SATURN:	return ln_get_saturn_rst(jd, obs, rst);
 		case OBJECT_VENUS:	return ln_get_venus_rst(jd, obs, rst);
 		case OBJECT_PLUTO:	return ln_get_pluto_rst(jd, obs, rst);
+		default:		return -1;
 	}
 }
 

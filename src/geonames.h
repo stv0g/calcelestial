@@ -28,17 +28,15 @@
 
 #include <json-c/json.h>
 
+/* Forward declaration */
+struct ln_lnlat_posn;
+
 #define GEONAMES_CACHE_SUPPORT 1
 #define GEONAMES_CACHE_FILE ".geonames.cache" /* in users home dir */
 
-struct coords {
-	double lng;
-	double lat;
-};
-
-int geonames_lookup(const char *place, struct coords *coords, char *name, int n);
-int geonames_cache_lookup(const char *place, struct coords *result, char *name, int n);
-int geonames_cache_store(const char *place, struct coords *result, char *name, int n);
-int geonames_parse(struct json_object *jobj, struct coords *result, char *name, int n);
+int geonames_lookup(const char *place, struct ln_lnlat_posn *coords, char *name, int n);
+int geonames_cache_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n);
+int geonames_cache_store(const char *place, struct ln_lnlat_posn *result, char *name, int n);
+int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char *name, int n);
 
 #endif /* _GEONAMES_H_ */

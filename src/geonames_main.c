@@ -26,11 +26,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <libnova/libnova.h>
+
 #include "../config.h"
 #include "geonames.h"
 
 int main(int argc, char *argv[]) {
-	struct coords res;
+	struct ln_lnlat_posn res;
 	char *result_name = malloc(32);
 	char *name = "Aachen";
 

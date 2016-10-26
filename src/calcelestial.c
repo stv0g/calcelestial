@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef GEONAMES_SUPPORT
 	/* lookup place at http://geonames.org */
-	if (query && geonames_lookup(query, (struct pos *) &obs, NULL, 0) != 0) {
+	if (query && geonames_lookup(query, &obs, NULL, 0) != 0) {
 		fprintf(stderr, "failed to lookup location: %s\n", query);
 		error = true;
 	}

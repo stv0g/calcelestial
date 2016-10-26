@@ -44,8 +44,8 @@ char * strfjddur(char *s, size_t max, const char *format, double jd) {
 
 	if (strstr(format, "%s") != NULL) {
 		char timestamp_str[16];
-		int seconds = round(jd * 86400);
-		snprintf(timestamp_str, sizeof(timestamp_str), "%lu", seconds);
+		unsigned long long seconds = round(jd * 86400);
+		snprintf(timestamp_str, sizeof(timestamp_str), "%llu", seconds);
 		format = strreplace(local_format, "%s", timestamp_str);
 	}
 

@@ -29,6 +29,7 @@
 
 #include <curl/curl.h>
 #include <json-c/json.h>
+#include <libnova/libnova.h>
 
 #include "../config.h"
 #include "geonames.h"
@@ -68,7 +69,7 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 	return realsize;
 }
 
-int geonames_lookup(const char *place, struct coords *result, char *name, int n) {
+int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
 
 #ifdef GEONAMES_CACHE_SUPPORT
 	if (geonames_cache_lookup(place, result, name, n) == EXIT_SUCCESS) {
@@ -135,7 +136,7 @@ int geonames_lookup(const char *place, struct coords *result, char *name, int n)
 	}
 }
 
-int geonames_parse(struct json_object *jobj, struct coords *result, char *name, int n) {
+int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char *name, int n) {
 	int results = json_object_get_int(json_object_object_get(jobj, "totalResultsCount"));
 	if (results == 0) {
 		return EXIT_FAILURE;
@@ -152,7 +153,7 @@ int geonames_parse(struct json_object *jobj, struct coords *result, char *name, 
 	return EXIT_SUCCESS;
 }
 
-int geonames_cache_lookup(const char *place, struct coords *result, char *name, int n) {
+int geonames_cache_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
 	/* create filename */
 	char filename[256];
 	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
@@ -204,7 +205,7 @@ int geonames_cache_lookup(const char *place, struct coords *result, char *name, 
 	return 1; /* not found */
 }
 
-int geonames_cache_store(const char *place, struct coords *result, char *name, int n) {
+int geonames_cache_store(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
 	/* create filename */
 	char filename[256];
 	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
