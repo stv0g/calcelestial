@@ -139,6 +139,8 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 #endif
 #endif
 		}
+		
+		json_object_put(jobj);
 
 		return ret;
 	}
@@ -147,16 +149,43 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 }
 
 int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char *name, int n) {
-	int results = json_object_get_int(json_object_object_get(jobj, "totalResultsCount"));
+	json_bool exists;
+	json_object *jobj_count, *jobj_geonames, *jobj_place, *jobj_lat, *jobj_lng, *jobj_name;
+	int results;
+	
+	exists = json_object_object_get_ex(jobj, "totalResultsCount", &jobj_count);
+	if (!exists)
+		return -1;
+
+	exists = json_object_object_get_ex(jobj, "geonames", &jobj_geonames);
+	if (!exists)
+		return -1;
+	
+	results = json_object_get_int(jobj_count);
 	if (results == 0)
 		return -1;
 
-	struct json_object *jobj_place = json_object_array_get_idx(json_object_object_get(jobj, "geonames"), 0);
-	result->lat = json_object_get_double(json_object_object_get(jobj_place, "lat"));
-	result->lng = json_object_get_double(json_object_object_get(jobj_place, "lng"));
+	jobj_place = json_object_array_get_idx(jobj_geonames, 0);
+	if (!jobj_place)
+		return -1;
+	
+	exists = json_object_object_get_ex(jobj_place, "lat", &jobj_lat);
+	if (!exists)
+		return -1;
+
+	exists = json_object_object_get_ex(jobj_place, "lng", &jobj_lng);
+	if (!exists)
+		return -1;
+	
+	exists = json_object_object_get_ex(jobj_name, "name", &jobj_name);
+	if (!exists)
+		return -1;
+
+	result->lat = json_object_get_double(jobj_lat);
+	result->lng = json_object_get_double(jobj_lng);
 
 	if (name && n > 0)
-		strncpy(name, json_object_get_string(json_object_object_get(jobj_place, "name")), n);
+		strncpy(name, json_object_get_string(jobj_name), n);
 
 	return 0;
 }
