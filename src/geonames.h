@@ -35,8 +35,7 @@ struct ln_lnlat_posn;
 #define GEONAMES_CACHE_FILE ".geonames.cache" /* in users home dir */
 
 int geonames_lookup(const char *place, struct ln_lnlat_posn *coords, char *name, int n);
-int geonames_cache_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n);
-int geonames_cache_store(const char *place, struct ln_lnlat_posn *result, char *name, int n);
+int geonames_cache_db(int lookup, const char *place, struct ln_lnlat_posn *coords);
 int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char *name, int n);
 
 #endif /* _GEONAMES_H_ */

@@ -26,6 +26,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <sys/types.h>
+#include <db.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <errno.h>
 
 #include <curl/curl.h>
 #include <json-c/json.h>
@@ -72,9 +78,12 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 }
 
 int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
-
 #ifdef GEONAMES_CACHE_SUPPORT
-	if (geonames_cache_lookup(place, result, name, n) == 0) {
+	int ret;
+	
+	ret = geonames_cache_db(1, place, result);
+	if (ret == 0) {
+		strncpy(name, place, n);
 #ifdef DEBUG
 		printf("debug: using cached geonames entry\n");
 #endif
@@ -124,7 +133,7 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 		int ret = geonames_parse(jobj, result, name, n);
 		if (!ret) {
 #ifdef GEONAMES_CACHE_SUPPORT
-			geonames_cache_store(place, result, name, n);
+			geonames_cache_db(0, place, result);
 #ifdef DEBUG
 			printf("debug: storing cache entry\n");
 #endif
@@ -152,74 +161,67 @@ int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char 
 	return 0;
 }
 
-int geonames_cache_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
-	/* create filename */
+int geonames_cache_db(int lookup, const char *place, struct ln_lnlat_posn *coords) {
+	int ret;
+	DB *dbp;
+	DBT key, data;
+
 	char filename[256];
+	char *place_lower;
+	
+	place_lower = strdup(place);
+	if (!place_lower)
+		return -1;
+	
+	for (char *p = place_lower; *p; ++p)
+		*p = tolower(*p);	
+
 	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
 
-	FILE *file = fopen(filename, "r"); /* should check the result */
-	if (file == NULL)
-		return -1;
-
-	char line[256];
-	while (fgets(line, sizeof(line), file)) {
-		/* replace newline at the end */
-		char *end = strchr(line, '\n');
-		if (end == NULL) {
-			return -1;
-		}
-		else
-			*end = '\0';
-
-		char *tok;
-		int col;
-		for (col = 0, tok = strtok(line, "\t"); tok != NULL; tok = strtok(NULL, "\t")) {
-			switch (col) {
-				case 0:
-					if (strcasecmp(tok, place) != 0) {
-						continue; /* skip row */
-					}
-					break;
-
-				case 1:
-					result->lat = strtod(tok, NULL);
-					break;
-
-				case 2:
-					result->lng = strtod(tok, NULL);
-					break;
-
-				case 3:
-					strncpy(name, tok, n);
-					fclose(file);
-					return 0; /* found! */
-			}
-			col++;
-		}
+	dbp = dbopen(filename, O_RDWR | O_CREAT, 0664, DB_BTREE, NULL);
+	if (!dbp) {
+		fprintf(stderr, "dbopen: %s\n", strerror(errno));
+		exit (1);
 	}
+	
+	memset(&key, 0, sizeof(key));
+	memset(&data, 0, sizeof(data));
 
-	fclose(file);
-	return 1; /* not found */
-}
+	key.data = place_lower;
+	key.size = strlen(place_lower) + 1;
+	
+	if (lookup) {
+		ret = dbp->get(dbp, &key, &data, 0);
+		if (ret)
+			goto err;
 
-int geonames_cache_store(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
-	/* create filename */
-	char filename[256];
-	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
-
-	FILE* file = fopen(filename, "a+"); /* should check the result */
-	if (file == NULL)
-		return -1;
-
-	/* build cache entry */
-	char line[256];
-	snprintf(line, sizeof(line), "%s\t%.5f\t%.5f\t%s\n", place, result->lat, result->lng, name);
-
-	if (fputs(line, file) == EOF) {
-		fclose(file);
-		return -1;
+#ifdef DEBUG
+		printf("debug: cache key retrieved: %s => %f %f.\n", (char *) key.data,
+			((struct ln_lnlat_posn *) data.data)->lat,
+			((struct ln_lnlat_posn *) data.data)->lng);
+#endif
+		if (data.size != sizeof(struct ln_lnlat_posn))
+			goto err;
+			
+		memcpy(coords, data.data, sizeof(struct ln_lnlat_posn));
 	}
+	else {
+		data.data = coords;
+		data.size = sizeof(struct ln_lnlat_posn);
+		
+		ret = dbp->put(dbp, &key, &data, 0);
+		if (ret)
+			goto err;
 
-	fclose(file);
-	return 0;
+#ifdef DEBUG
+		printf("debug: cache key stored: %s => %f %f.\n", (char *) key.data,
+			((struct ln_lnlat_posn *) data.data)->lat,
+			((struct ln_lnlat_posn *) data.data)->lng);
+#endif
+	}
+	
+err:	
+	dbp->close(dbp);
+
+	return ret;
 }
