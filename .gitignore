@@ -1,36 +1,22 @@
+# Build products
 *~
+*.o
+*.in
 
-# Binaries
-/src/sun
+/src/calcelestial
 /src/geonames
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-
-# Compiled Dynamic libraries
-*.so
-*.so.*
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-
-# automake
+# Autotools
+INSTALL
+aclocal.m4
+compile
+depcomp
+install-sh
+missing
+config.status
+config.h
+configure
 Makefile
-.deps
-
-# autoconf
-/autom4te.cache
-
-/config.status
-/config.log
-/config.h
 stamp-h1
-
-/libtool
-
-# Debian packaging
-/debian/config.log
+.deps
+/autom4te.cache
