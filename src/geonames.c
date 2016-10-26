@@ -72,11 +72,11 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
 
 #ifdef GEONAMES_CACHE_SUPPORT
-	if (geonames_cache_lookup(place, result, name, n) == EXIT_SUCCESS) {
+	if (geonames_cache_lookup(place, result, name, n) == 0) {
 #ifdef DEBUG
 		printf("using cached geonames entry\n");
 #endif
-		return EXIT_SUCCESS;
+		return 0;
 	}
 #endif
 
@@ -87,14 +87,14 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 
 	/* setup curl */
 	ch = curl_easy_init();
-	if (!ch) return -1;
+	if (!ch)
+		return -1;
 
 	/* prepare url */
 	int len = strlen(place) + strlen(request_url_tpl) + 1;
 	char *request_url = malloc(len);
-	if (!request_url) {
+	if (!request_url)
 		return -2;
-	}
 
 	snprintf(request_url, len, request_url_tpl, place, username);
 
@@ -115,12 +115,12 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 
 	if (res != CURLE_OK) {
 		fprintf(stderr, "request failed: %s\n", curl_easy_strerror(res));
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	if (jobj) {
 		int ret = geonames_parse(jobj, result, name, n);
-		if (ret == EXIT_SUCCESS) {
+		if (!ret) {
 #ifdef GEONAMES_CACHE_SUPPORT
 			geonames_cache_store(place, result, name, n);
 #ifdef DEBUG
@@ -131,26 +131,23 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 
 		return ret;
 	}
-	else {
-		return EXIT_FAILURE;
-	}
+	else
+		return -1;
 }
 
 int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char *name, int n) {
 	int results = json_object_get_int(json_object_object_get(jobj, "totalResultsCount"));
-	if (results == 0) {
-		return EXIT_FAILURE;
-	}
+	if (results == 0)
+		return -1;
 
 	struct json_object *jobj_place = json_object_array_get_idx(json_object_object_get(jobj, "geonames"), 0);
 	result->lat = json_object_get_double(json_object_object_get(jobj_place, "lat"));
 	result->lng = json_object_get_double(json_object_object_get(jobj_place, "lng"));
 
-	if (name && n > 0) {
+	if (name && n > 0)
 		strncpy(name, json_object_get_string(json_object_object_get(jobj_place, "name")), n);
-	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int geonames_cache_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
@@ -159,20 +156,18 @@ int geonames_cache_lookup(const char *place, struct ln_lnlat_posn *result, char 
 	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
 
 	FILE *file = fopen(filename, "r"); /* should check the result */
-	if (file == NULL) {
-		return EXIT_FAILURE;
-	}
+	if (file == NULL)
+		return -1;
 
 	char line[256];
 	while (fgets(line, sizeof(line), file)) {
 		/* replace newline at the end */
 		char *end = strchr(line, '\n');
 		if (end == NULL) {
-			return EXIT_FAILURE;
+			return -1;
 		}
-		else {
+		else
 			*end = '\0';
-		}
 
 		char *tok;
 		int col;
@@ -195,7 +190,7 @@ int geonames_cache_lookup(const char *place, struct ln_lnlat_posn *result, char 
 				case 3:
 					strncpy(name, tok, n);
 					fclose(file);
-					return EXIT_SUCCESS; /* found! */
+					return 0; /* found! */
 			}
 			col++;
 		}
@@ -211,9 +206,8 @@ int geonames_cache_store(const char *place, struct ln_lnlat_posn *result, char *
 	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
 
 	FILE* file = fopen(filename, "a+"); /* should check the result */
-	if (file == NULL) {
-		return EXIT_FAILURE;
-	}
+	if (file == NULL)
+		return -1;
 
 	/* build cache entry */
 	char line[256];
@@ -221,9 +215,9 @@ int geonames_cache_store(const char *place, struct ln_lnlat_posn *result, char *
 
 	if (fputs(line, file) == EOF) {
 		fclose(file);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	fclose(file);
-	return EXIT_SUCCESS;
+	return 0;
 }

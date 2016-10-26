@@ -33,21 +33,18 @@
 
 int main(int argc, char *argv[]) {
 	struct ln_lnlat_posn res;
-	char *result_name = malloc(32);
-	char *name = "Aachen";
+	char *result_name, *name;
 
-	if (result_name == NULL) {
-		return EXIT_FAILURE;
-	}
+	result_name = malloc(128);
+	if (result_name == NULL)
+		return -1;
 
-	if (argc == 2) {
-		name = argv[1];
-	}
+	if (argc != 2)
+		fprintf(stderr, "Usage: geonames LOCATION\n");
 
-	int ret = geonames_lookup(name, &res, result_name, 32);
-	if (ret == EXIT_SUCCESS) {
+	int ret = geonames_lookup(argv[1], &res, result_name, 32);
+	if (!ret)
 		printf("%s is at (%.4f, %.4f)\r\n", result_name, res.lat, res.lng);
-	}
 
 	free(result_name);
 

@@ -224,11 +224,11 @@ int main(int argc, char *argv[]) {
 
 			case 'v':
 				version();
-				return EXIT_SUCCESS;
+				return 0;
 
 			case 'h':
 				usage();
-				return EXIT_SUCCESS;
+				return 0;
 
 			case '?':
 			default:
@@ -265,7 +265,7 @@ int main(int argc, char *argv[]) {
 	if (error) {
 		printf("\n");
 		usage();
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	/* calculate julian date */
@@ -273,9 +273,9 @@ int main(int argc, char *argv[]) {
 		t = (utc) ? mktimeutc(date) : mktime(date);
 		free(date);
 	}
-	else {
+	else
 		t = time(NULL);
-	}
+
 	jd = ln_get_julian_from_timet(&t);
 	date = localtime(&t);
 
@@ -294,8 +294,8 @@ int main(int argc, char *argv[]) {
 	/* calc rst date */
 rst:	if (object_rst(obj, jd - .5, horizon, &result.obs, &result.rst) == 1)  {
 		if (moment != MOMENT_NOW) {
-	                fprintf(stderr, "object is circumpolar\n");
-			return EXIT_CIRCUMPOLAR;
+			fprintf(stderr, "object is circumpolar\n");
+			return 2;
 		}
 	}
 	else {
@@ -319,5 +319,5 @@ rst:	if (object_rst(obj, jd - .5, horizon, &result.obs, &result.rst) == 1)  {
 	/* format & output */
 	format_result(format, &result);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
