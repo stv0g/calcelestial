@@ -51,6 +51,7 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 	if (jtok->err == json_tokener_continue) {
 #ifdef DEBUG
 		printf("got chunk: %zu * %zu = %zu bytes\r\n", size, nmemb, realsize);
+		printf("   %.*s\r\n", realsize, (char *) contents);
 #endif
 
 		jobj = json_tokener_parse_ex(jtok, (char *) contents, realsize);
