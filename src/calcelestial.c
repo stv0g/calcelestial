@@ -284,7 +284,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEBUG
 	printf("calculate for jd: %f\n", jd);
-	printf("calculate for ts: %d\n", t);
+	printf("calculate for ts: %ld\n", t);
 	printf("for position: N %f, E %f\n", obs.lat, obs.lng);
 	printf("for object: %s\n", object_to_name(obj));
 	printf("with horizon: %f\n", horizon);
