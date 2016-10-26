@@ -29,9 +29,6 @@ AC_CONFIG_FILES([
   src/Makefile
 ])
 
-# Workaround for https://github.com/stv0g/calcelestial/issues/5
-AM_CXXFLAGS="$AM_CFLAGS -Wno-deprecated-declarations"
-
 # geonames.org support
 AC_ARG_ENABLE(
     [geonames], 
