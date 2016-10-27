@@ -29,21 +29,20 @@
 
 static struct object {
 	const char *name;
-	int (*rst)(double JD, struct ln_lnlat_posn *observer, struct ln_rst_time *rst);
 	void (*equ_coords)(double JD, struct ln_equ_posn *position);
 	double (*earth_dist)(double JD);
 	double (*sdiam)(double JD);
 } objects[] = {
-	{ "sun",     0 /* special case */, ln_get_solar_equ_coords,   ln_get_earth_solar_dist,   ln_get_solar_sdiam       },
-	{ "moon",    ln_get_lunar_rst,     ln_get_lunar_equ_coords,   ln_get_lunar_earth_dist,   ln_get_lunar_sdiam       },
-	{ "mars",    ln_get_mars_rst,      ln_get_mars_equ_coords,    ln_get_mars_earth_dist,    ln_get_mars_sdiam        },
-	{ "neptune", ln_get_neptune_rst,   ln_get_neptune_equ_coords, ln_get_neptune_earth_dist, ln_get_neptune_sdiam     },
-	{ "jupiter", ln_get_jupiter_rst,   ln_get_jupiter_equ_coords, ln_get_jupiter_earth_dist, ln_get_jupiter_equ_sdiam },
-	{ "mercury", ln_get_mercury_rst,   ln_get_mercury_equ_coords, ln_get_mercury_earth_dist, ln_get_mercury_sdiam     },
-	{ "uranus",  ln_get_uranus_rst,    ln_get_uranus_equ_coords,  ln_get_uranus_earth_dist,  ln_get_uranus_sdiam      },
-	{ "saturn",  ln_get_saturn_rst,    ln_get_saturn_equ_coords,  ln_get_saturn_earth_dist,  ln_get_saturn_equ_sdiam  },
-	{ "venus",   ln_get_venus_rst,     ln_get_venus_equ_coords,   ln_get_venus_earth_dist,   ln_get_venus_sdiam       },
-	{ "pluto",   ln_get_pluto_rst,     ln_get_pluto_equ_coords,   ln_get_pluto_earth_dist,   ln_get_pluto_sdiam       }
+	{ "sun",     ln_get_solar_equ_coords,   ln_get_earth_solar_dist,   ln_get_solar_sdiam       },
+	{ "moon",    ln_get_lunar_equ_coords,   ln_get_lunar_earth_dist,   ln_get_lunar_sdiam       },
+	{ "mars",    ln_get_mars_equ_coords,    ln_get_mars_earth_dist,    ln_get_mars_sdiam        },
+	{ "neptune", ln_get_neptune_equ_coords, ln_get_neptune_earth_dist, ln_get_neptune_sdiam     },
+	{ "jupiter", ln_get_jupiter_equ_coords, ln_get_jupiter_earth_dist, ln_get_jupiter_equ_sdiam },
+	{ "mercury", ln_get_mercury_equ_coords, ln_get_mercury_earth_dist, ln_get_mercury_sdiam     },
+	{ "uranus",  ln_get_uranus_equ_coords,  ln_get_uranus_earth_dist,  ln_get_uranus_sdiam      },
+	{ "saturn",  ln_get_saturn_equ_coords,  ln_get_saturn_earth_dist,  ln_get_saturn_equ_sdiam  },
+	{ "venus",   ln_get_venus_equ_coords,   ln_get_venus_earth_dist,   ln_get_venus_sdiam       },
+	{ "pluto",   ln_get_pluto_equ_coords,   ln_get_pluto_earth_dist,   ln_get_pluto_sdiam       }
 };
 
 const struct object * object_lookup(const char *name)
@@ -72,8 +71,5 @@ void object_pos(const struct object *o, double jd, struct object_details *detail
 
 int object_rst(const struct object *o, double jd, double horizon, struct ln_lnlat_posn *obs, struct ln_rst_time *rst)
 {
-	if (o->sdiam == ln_get_solar_sdiam)
-		return ln_get_solar_rst_horizon(jd, obs, horizon, rst); /* special case */
-	else
-		return o->rst(jd, obs, rst);
+	return ln_get_body_rst_horizon(jd, obs, o->equ_coords, horizon, rst);
 }
