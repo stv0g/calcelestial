@@ -43,7 +43,8 @@
 const char* username = "libastro";
 const char* request_url_tpl = "http://api.geonames.org/search?name=%s&maxRows=1&username=%s&type=json&orderby=relevance";
 
-static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, void *userp) {
+static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, void *userp)
+{
 	static struct json_tokener *jtok;
 	static struct json_object *jobj;
 	size_t realsize = size * nmemb;
@@ -56,7 +57,7 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 
 	if (jtok->err == json_tokener_continue) {
 #ifdef DEBUG
-		printf("debug: received chunk: %zu * %zu = %zu bytes\r\n", size, nmemb, realsize);
+		printf("Debug: received chunk: %zu * %zu = %zu bytes\r\n", size, nmemb, realsize);
 		printf("   %.*s\r\n", (int) realsize, (char *) contents);
 #endif
 
@@ -77,7 +78,8 @@ static size_t json_parse_callback(void *contents, size_t size, size_t nmemb, voi
 	return realsize;
 }
 
-int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n) {
+int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name, int n)
+{
 #ifdef GEONAMES_CACHE_SUPPORT
 	int ret;
 	
@@ -85,7 +87,7 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 	if (ret == 0) {
 		strncpy(name, place, n);
 #ifdef DEBUG
-		printf("debug: using cached geonames entry\n");
+		printf("Debug: using cached geonames entry\n");
 #endif
 		return 0;
 	}
@@ -110,7 +112,7 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 	snprintf(request_url, len, request_url_tpl, place, username);
 
 #ifdef DEBUG
-	printf("debug: request url: %s\r\n", request_url);
+	printf("Debug: request url: %s\r\n", request_url);
 #endif
 
 	curl_easy_setopt(ch, CURLOPT_URL, request_url);
@@ -135,7 +137,7 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 #ifdef GEONAMES_CACHE_SUPPORT
 			geonames_cache_db(0, place, result);
 #ifdef DEBUG
-			printf("debug: storing cache entry\n");
+			printf("Debug: storing cache entry\n");
 #endif
 #endif
 		}
@@ -148,7 +150,8 @@ int geonames_lookup(const char *place, struct ln_lnlat_posn *result, char *name,
 		return -1;
 }
 
-int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char *name, int n) {
+int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char *name, int n)
+{
 	json_bool exists;
 	json_object *jobj_count, *jobj_geonames, *jobj_place, *jobj_lat, *jobj_lng, *jobj_name;
 	int results;
@@ -190,7 +193,8 @@ int geonames_parse(struct json_object *jobj, struct ln_lnlat_posn *result, char 
 	return 0;
 }
 
-int geonames_cache_db(int lookup, const char *place, struct ln_lnlat_posn *coords) {
+int geonames_cache_db(int lookup, const char *place, struct ln_lnlat_posn *coords)
+{
 	int ret;
 	DB *dbp;
 	DBT key, data;
@@ -225,7 +229,7 @@ int geonames_cache_db(int lookup, const char *place, struct ln_lnlat_posn *coord
 			goto err;
 
 #ifdef DEBUG
-		printf("debug: cache key retrieved: %s => %f %f.\n", (char *) key.data,
+		printf("Debug: cache key retrieved: %s => %f %f.\n", (char *) key.data,
 			((struct ln_lnlat_posn *) data.data)->lat,
 			((struct ln_lnlat_posn *) data.data)->lng);
 #endif
@@ -243,7 +247,7 @@ int geonames_cache_db(int lookup, const char *place, struct ln_lnlat_posn *coord
 			goto err;
 
 #ifdef DEBUG
-		printf("debug: cache key stored: %s => %f %f.\n", (char *) key.data,
+		printf("Debug: cache key stored: %s => %f %f.\n", (char *) key.data,
 			((struct ln_lnlat_posn *) data.data)->lat,
 			((struct ln_lnlat_posn *) data.data)->lng);
 #endif

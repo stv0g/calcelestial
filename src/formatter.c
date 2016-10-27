@@ -31,7 +31,8 @@
 #include "helpers.h"
 #include "formatter.h"
 
-void format_result(const char *format, struct object_details *result) {
+void format_result(const char *format, struct object_details *result)
+{
 	char buffer[128];
 	char *local_format = strdup(format);
 	int i;

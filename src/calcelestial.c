@@ -48,13 +48,6 @@
 #include "formatter.h"
 #include "geonames.h"
 
-enum moment {
-	MOMENT_NOW,
-	MOMENT_RISE,
-	MOMENT_SET,
-	MOMENT_TRANSIT
-};
-
 static struct option long_options[] = {
 	{"object",	required_argument, 0, 'p'},
 	{"horizon",	required_argument, 0, 'H'},
@@ -88,16 +81,18 @@ static const char *long_options_descs[] = {
 #endif
 	"override system timezone",
 	"use universial time for parsing and formatting",
-	"show this help",
+	"show usage help",
 	"show version"
 };
 
-void version() {
+void version()
+{
 	printf("%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 	printf("libnova %s\n", LIBNOVA_VERSION);
 }
 
-void usage() {
+void usage()
+{
 	printf("Usage:\n  %s [options]\n\n", PACKAGE_NAME);
 	printf("Options:\n");
 
@@ -113,77 +108,90 @@ void usage() {
 	printf("Please report bugs to: %s\n", PACKAGE_BUGREPORT);
 }
 
-int main(int argc, char *argv[]) {
-	/* default options */
-	double horizon = LN_SOLAR_STANDART_HORIZON; /* 50 Bogenminuten; no twilight, normal sunset/rise */
-	int tz = INT_MAX;
-//	char *format = "time: %Y-%m-%d %H:%M:%S az: §a (§s) alt: §h";
-	char *format = "%H:%M";
-	char *obj_str = basename(argv[0]);
-	char *query = NULL;
-	bool error = false;
-	bool utc = false;
-	bool next = false;
+void usage_error(const char *err)
+{
+	fprintf(stderr, "Error: %s\n\n", err);
+	usage();
+	exit(-1);
+}
 
+int main(int argc, char *argv[])
+{
+	int ret;
 	time_t t;
 	double jd;
 	struct tm *date = NULL;
+	const struct object *obj;
 
-	enum moment moment = MOMENT_NOW;
-	enum object obj = OBJECT_INVALID;
+	/* Default options */
+	double horizon = LN_SOLAR_STANDART_HORIZON; /* 50 Bogenminuten; no twilight, normal sunset/rise */
+	int tz = INT_MAX;
+
+	char *obj_str = basename(argv[0]);
+	char *format = "time: %Y-%m-%d %H:%M:%S az: §a (§s) alt: §h";
+	char *query = NULL;
+
+	bool horizon_set = false;
+	bool utc = false;
+	bool next = false;
+
+	enum {
+		MOMENT_NOW,
+		MOMENT_RISE,
+		MOMENT_SET,
+		MOMENT_TRANSIT
+	} moment = MOMENT_NOW;
 
 	struct ln_lnlat_posn obs = { DBL_MAX, DBL_MAX };
 	struct object_details result;
 
 	/* parse command line arguments */
 	while (1) {
-		int c = getopt_long(argc, argv, "+hvnut:d:f:a:o:q:z:p:m:H:", long_options, NULL);
+		char c = getopt_long(argc, argv, "+hvnut:d:f:a:o:q:z:p:m:H:", long_options, NULL);
 
 		/* detect the end of the options. */
-		if (c == -1) break;
+		if (c == -1)
+			break;
 
 		switch (c) {
 			case 'H':
-				if (strcmp(optarg, "civil") == 0) {
+				if      (strcmp(optarg, "civil") == 0)
 					horizon = LN_SOLAR_CIVIL_HORIZON;
-				}
-				else if (strcmp(optarg, "nautic") == 0) {
+				else if (strcmp(optarg, "nautic") == 0)
 					horizon = LN_SOLAR_NAUTIC_HORIZON;
-				}
-				else if (strcmp(optarg, "astronomical") == 0) {
+				else if (strcmp(optarg, "astronomical") == 0)
 					horizon = LN_SOLAR_ASTRONOMICAL_HORIZON;
-				}
 				else {
 					char *endptr;
 					horizon = strtod(optarg, &endptr);
 
-					if (endptr == optarg) {
-						fprintf(stderr, "invalid twilight: %s\n", optarg);
-						error = true;
-					}
+					if (endptr == optarg)
+						usage_error("invalid horizon / twilight parameter");
 				}
+				
+				horizon_set = true;
 				break;
 
 			case 't':
 				date = malloc(sizeof(struct tm));
 				date->tm_isdst = -1; /* update dst */
-				if (strptime(optarg, "%Y-%m-%d %H:%M:%S", date)) { }
+				if      (strptime(optarg, "%Y-%m-%d %H:%M:%S", date)) { }
 				else if (strptime(optarg, "%Y-%m-%d", date)) { }
 				else {
 					free(date);
-					fprintf(stderr, "invalid date: %s\n", optarg);
-					error = true;
+					usage_error("invalid date parameter");
 				}
 				break;
 
 			case 'm':
-				if (strcmp(optarg, "rise") == 0) moment = MOMENT_RISE;
-				else if (strcmp(optarg, "set") == 0) moment = MOMENT_SET;
-				else if (strcmp(optarg, "transit") == 0) moment = MOMENT_TRANSIT;
-				else {
-					fprintf(stderr, "invalid moment: %s\n", optarg);
-					error = true;
-				}
+				if      (strcmp(optarg, "rise") == 0)
+					moment = MOMENT_RISE;
+				else if (strcmp(optarg, "set") == 0)
+					moment = MOMENT_SET;
+				else if (strcmp(optarg, "transit") == 0)
+					moment = MOMENT_TRANSIT;
+				else
+					usage_error("invalid moment");
 				break;
 
 			case 'n':
@@ -230,8 +238,7 @@ int main(int argc, char *argv[]) {
 
 			case '?':
 			default:
-				fprintf(stderr, "unrecognized option %s\n", optarg);
-				error = true;
+				usage_error("unrecognized option");
 		}
 	}
 	
@@ -241,31 +248,24 @@ int main(int argc, char *argv[]) {
 		usage_error("invalid or missing object, use --object");
 
 #ifdef GEONAMES_SUPPORT
-	/* lookup place at http://geonames.org */
-	if (query && geonames_lookup(query, &obs, NULL, 0) != 0) {
-		fprintf(stderr, "failed to lookup location: %s\n", query);
-		error = true;
+	/* Lookup place at http://geonames.org */
+	if (query) {
+		ret =  geonames_lookup(query, &obs, NULL, 0);
+		if (ret)
+			usage_error("failed to lookup location");
 	}
 #endif
 
-	/* validate observer coordinates */
-	if (fabs(obs.lat) > 90) {
-		fprintf(stderr, "invalid latitude, use --lat\n");
-		error = true;
-	}
-	if (fabs(obs.lng) > 180) {
-		fprintf(stderr, "invalid longitude, use --lon\n");
-		error = true;
-	}
+	/* Validate observer coordinates */
+	if (fabs(obs.lat) > 90)
+		usage_error("invalid latitude, use --lat");
+	if (fabs(obs.lng) > 180)
+		usage_error("invalid longitude, use --lon");
+	
+	if (horizon_set && !strcmp(object_name(obj), "sun"))
+		usage_error("the twilight parameter can only be used for the sun");
 
-	/* abort on errors */
-	if (error) {
-		printf("\n");
-		usage();
-		return -1;
-	}
-
-	/* calculate julian date */
+	/* Calculate julian date */
 	if (date) {
 		t = (utc) ? mktimeutc(date) : mktime(date);
 		free(date);
@@ -280,12 +280,12 @@ int main(int argc, char *argv[]) {
 	result.obs = obs;
 
 #ifdef DEBUG
-	printf("debug: calculate for jd: %f\n", jd);
-	printf("debug: calculate for ts: %ld\n", t);
-	printf("debug: for position: N %f, E %f\n", obs.lat, obs.lng);
-	printf("debug: for object: %s\n", object_to_name(obj));
-	printf("debug: with horizon: %f\n", horizon);
-	printf("debug: with timezone: %d\n", result.tz);
+	printf("Debug: calculate for jd: %f\n", jd);
+	printf("Debug: calculate for ts: %ld\n", t);
+	printf("Debug: for position: N %f, E %f\n", obs.lat, obs.lng);
+	printf("Debug: for object: %s\n", object_name(obj));
+	printf("Debug: with horizon: %f\n", horizon);
+	printf("Debug: with timezone: %d\n", result.tz);
 #endif
 
 	/* calc rst date */
