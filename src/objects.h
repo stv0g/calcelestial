@@ -26,25 +26,25 @@
 #ifndef _OBJECTS_H_
 #define _OBJECTS_H_
 
+#include <time.h>
 #include <libnova/libnova.h>
 
-#include <stdbool.h>
 
 struct object;
 
 struct object_details {
-	double jd;			/* julian date of observation */
-	int tz;				/* timezone of observer */
+	double jd;			/**< Julian date of observation */
+	struct tm tm;			/**< Broken down representation of observation */
+	
+	double diameter;		/**< In arc seconds */
+	double distance;		/**< In AU (astronomical unit) */
 
-	double diameter;		/* in arc seconds */
-	double distance;		/* in AU */
-
-	struct ln_lnlat_posn obs;	/* observer */
-	struct ln_rst_time rst;		/* rise/set/transit time in JD */
+	struct ln_lnlat_posn obs;	/**< Observer position */
+	struct ln_rst_time rst;		/**< rise/set/transit time in JD */
 
 	struct ln_equ_posn equ;
 	struct ln_hrz_posn hrz;
-	const char *azidir;		/* direction of azimuth - like N,S,W,E,NSW,.. */
+	const char *azidir;		/**< Direction of azimuth - like N,S,W,E,NSW,.. */
 };
 
 const struct object * object_lookup(const char *name);
