@@ -30,22 +30,7 @@
 
 #include <stdbool.h>
 
-#define AU_METERS 149597870.7
-#define OBJECTS 10
-
-enum object {
-	OBJECT_INVALID,
-	OBJECT_SUN,
-	OBJECT_MOON,
-	OBJECT_MARS,
-	OBJECT_NEPTUNE,
-	OBJECT_JUPITER,
-	OBJECT_MERCURY,
-	OBJECT_URANUS,
-	OBJECT_SATURN,
-	OBJECT_VENUS,
-	OBJECT_PLUTO
-};
+struct object;
 
 struct object_details {
 	double jd;			/* julian date of observation */
@@ -62,21 +47,10 @@ struct object_details {
 	const char *azidir;		/* direction of azimuth - like N,S,W,E,NSW,.. */
 };
 
-enum object object_from_name(const char *name);
-const char * object_to_name(enum object obj);
+const struct object * object_lookup(const char *name);
+const char * object_name(const struct object *o);
 
-void object_pos(enum object obj, double jd, struct object_details *details);
-int object_rst(enum object obj, double jd, double horizon, struct ln_lnlat_posn *obs, struct ln_rst_time *rst);
-
-void object_pos_sun(double jd, struct object_details *details);
-void object_pos_moon(double jd, struct object_details *details);
-void object_pos_mars(double jd, struct object_details *details);
-void object_pos_neptune(double jd, struct object_details *details);
-void object_pos_jupiter(double jd, struct object_details *details);
-void object_pos_mercury(double jd, struct object_details *details);
-void object_pos_uranus(double jd, struct object_details *details);
-void object_pos_saturn(double jd, struct object_details *details);
-void object_pos_venus(double jd, struct object_details *details);
-void object_pos_pluto(double jd, struct object_details *details);
+void object_pos(const struct object *o, double jd, struct object_details *details);
+int object_rst(const struct object *o, double jd, double horizon, struct ln_lnlat_posn *obs, struct ln_rst_time *rst);
 
 #endif /* _OBJECTS_H_ */

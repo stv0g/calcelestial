@@ -119,6 +119,7 @@ int main(int argc, char *argv[]) {
 	int tz = INT_MAX;
 //	char *format = "time: %Y-%m-%d %H:%M:%S az: §a (§s) alt: §h";
 	char *format = "%H:%M";
+	char *obj_str = basename(argv[0]);
 	char *query = NULL;
 	bool error = false;
 	bool utc = false;
@@ -133,9 +134,6 @@ int main(int argc, char *argv[]) {
 
 	struct ln_lnlat_posn obs = { DBL_MAX, DBL_MAX };
 	struct object_details result;
-
-	/* parse planet/obj */
-	obj = object_from_name(basename(argv[0]));
 
 	/* parse command line arguments */
 	while (1) {
@@ -210,7 +208,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 			case 'p':
-				obj = object_from_name(optarg);
+				obj_str = optarg;
 				break;
 
 			case 'z':
@@ -236,12 +234,11 @@ int main(int argc, char *argv[]) {
 				error = true;
 		}
 	}
-
-	/* validate obj */
-	if (obj == OBJECT_INVALID) {
-		fprintf(stderr, "invalid object, use --object\n");
-		error = true;
-	}
+	
+	/* Parse planet/obj */
+	obj = object_lookup(obj_str);
+	if (!obj)
+		usage_error("invalid or missing object, use --object");
 
 #ifdef GEONAMES_SUPPORT
 	/* lookup place at http://geonames.org */

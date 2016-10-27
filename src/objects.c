@@ -27,133 +27,53 @@
 
 #include "objects.h"
 
-const char* objects[] = {
-	NULL, /* invalid */
-	"sun",
-	"moon",
-	"mars",
-	"neptune",
-	"jupiter",
-	"mercury",
-	"uranus",
-	"saturn",
-	"venus",
-	"pluto"
+static struct object {
+	const char *name;
+	int (*rst)(double JD, struct ln_lnlat_posn *observer, struct ln_rst_time *rst);
+	void (*equ_coords)(double JD, struct ln_equ_posn *position);
+	double (*earth_dist)(double JD);
+	double (*sdiam)(double JD);
+} objects[] = {
+	{ "sun",     0 /* special case */, ln_get_solar_equ_coords,   ln_get_earth_solar_dist,   ln_get_solar_sdiam       },
+	{ "moon",    ln_get_lunar_rst,     ln_get_lunar_equ_coords,   ln_get_lunar_earth_dist,   ln_get_lunar_sdiam       },
+	{ "mars",    ln_get_mars_rst,      ln_get_mars_equ_coords,    ln_get_mars_earth_dist,    ln_get_mars_sdiam        },
+	{ "neptune", ln_get_neptune_rst,   ln_get_neptune_equ_coords, ln_get_neptune_earth_dist, ln_get_neptune_sdiam     },
+	{ "jupiter", ln_get_jupiter_rst,   ln_get_jupiter_equ_coords, ln_get_jupiter_earth_dist, ln_get_jupiter_equ_sdiam },
+	{ "mercury", ln_get_mercury_rst,   ln_get_mercury_equ_coords, ln_get_mercury_earth_dist, ln_get_mercury_sdiam     },
+	{ "uranus",  ln_get_uranus_rst,    ln_get_uranus_equ_coords,  ln_get_uranus_earth_dist,  ln_get_uranus_sdiam      },
+	{ "saturn",  ln_get_saturn_rst,    ln_get_saturn_equ_coords,  ln_get_saturn_earth_dist,  ln_get_saturn_equ_sdiam  },
+	{ "venus",   ln_get_venus_rst,     ln_get_venus_equ_coords,   ln_get_venus_earth_dist,   ln_get_venus_sdiam       },
+	{ "pluto",   ln_get_pluto_rst,     ln_get_pluto_equ_coords,   ln_get_pluto_earth_dist,   ln_get_pluto_sdiam       }
 };
 
-void object_pos(enum object obj, double jd, struct object_details *details) {
-	switch (obj) {
-		case OBJECT_SUN:	return object_pos_sun(jd, details);
-		case OBJECT_MOON:	return object_pos_moon(jd, details);
-		case OBJECT_MARS:	return object_pos_mars(jd, details);
-		case OBJECT_NEPTUNE:	return object_pos_neptune(jd, details);
-		case OBJECT_JUPITER:	return object_pos_jupiter(jd, details);
-		case OBJECT_MERCURY:	return object_pos_mercury(jd, details);
-		case OBJECT_URANUS:	return object_pos_uranus(jd, details);
-		case OBJECT_SATURN:	return object_pos_saturn(jd, details);
-		case OBJECT_VENUS:	return object_pos_venus(jd, details);
-		case OBJECT_PLUTO:	return object_pos_pluto(jd, details);
-		default: ;
-	}
-}
-
-int object_rst(enum object obj, double jd, double horizon, struct ln_lnlat_posn *obs, struct ln_rst_time *rst) {
-	switch (obj) {
-		case OBJECT_SUN:	return ln_get_solar_rst_horizon(jd, obs, horizon, rst);
-		case OBJECT_MOON:	return ln_get_lunar_rst(jd, obs, rst);
-		case OBJECT_MARS:	return ln_get_mars_rst(jd, obs, rst);
-		case OBJECT_NEPTUNE:	return ln_get_neptune_rst(jd, obs, rst);
-		case OBJECT_JUPITER:	return ln_get_jupiter_rst(jd, obs, rst);
-		case OBJECT_MERCURY:	return ln_get_mercury_rst(jd, obs, rst);
-		case OBJECT_URANUS:	return ln_get_uranus_rst(jd, obs, rst);
-		case OBJECT_SATURN:	return ln_get_saturn_rst(jd, obs, rst);
-		case OBJECT_VENUS:	return ln_get_venus_rst(jd, obs, rst);
-		case OBJECT_PLUTO:	return ln_get_pluto_rst(jd, obs, rst);
-		default:		return -1;
-	}
-}
-
-enum object object_from_name(const char *name) {
+const struct object * object_lookup(const char *name)
+{
 	int c;
-	for (c = 1; c <= OBJECTS; c++) {
-		if (strcmp(objects[c], name) == 0) {
-			return (enum object) c;
-		}
+	for (c = 0; c <= sizeof(objects) / sizeof(objects[0]); c++) {
+		if (strcmp(objects[c].name, name) == 0)
+			return &objects[c];
 	}
 
-	return OBJECT_INVALID;
+	return NULL;
 }
 
-const char * object_to_name(enum object obj) {
-	return objects[obj];
+const char * object_name(const struct object *o)
+{
+	return o->name;
 }
 
-void object_pos_sun(double jd, struct object_details *details) {
-	ln_get_solar_equ_coords(jd, &details->equ);
+void object_pos(const struct object *o, double jd, struct object_details *details)
+{
+	o->equ_coords(jd, &details->equ);
 
-	details->distance = ln_get_earth_solar_dist(jd);
-	details->diameter = ln_get_solar_sdiam(jd);
+	details->distance = o->earth_dist(jd);
+	details->diameter = o->sdiam(jd);
 }
 
-void object_pos_moon(double jd, struct object_details *details) {
-	ln_get_lunar_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_lunar_earth_dist(jd) / AU_METERS;
-	details->diameter = ln_get_lunar_sdiam(jd);
-}
-
-void object_pos_mars(double jd, struct object_details *details) {
-	ln_get_mars_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_mars_earth_dist(jd);
-	details->diameter = ln_get_mars_sdiam(jd);
-}
-
-void object_pos_neptune(double jd, struct object_details *details) {
-	ln_get_neptune_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_neptune_earth_dist(jd);
-	details->diameter = ln_get_neptune_sdiam(jd);
-}
-
-void object_pos_jupiter(double jd, struct object_details *details) {
-	ln_get_jupiter_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_jupiter_earth_dist(jd);
-	details->diameter = ln_get_jupiter_equ_sdiam(jd);
-}
-
-void object_pos_mercury(double jd, struct object_details *details) {
-	ln_get_mercury_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_mercury_earth_dist(jd);
-	details->diameter = ln_get_mercury_sdiam(jd);
-}
-
-void object_pos_uranus(double jd, struct object_details *details) {
-	ln_get_uranus_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_uranus_earth_dist(jd);
-	details->diameter = ln_get_uranus_sdiam(jd);
-}
-
-void object_pos_saturn(double jd, struct object_details *details) {
-	ln_get_saturn_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_saturn_earth_dist(jd);
-	details->diameter = ln_get_saturn_equ_sdiam(jd);
-}
-
-void object_pos_venus(double jd, struct object_details *details) {
-	ln_get_venus_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_venus_earth_dist(jd);
-	details->diameter = ln_get_venus_sdiam(jd);
-}
-
-void object_pos_pluto(double jd, struct object_details *details) {
-	ln_get_pluto_equ_coords(jd, &details->equ);
-
-	details->distance = ln_get_pluto_earth_dist(jd);
-	details->diameter = ln_get_pluto_sdiam(jd);
+int object_rst(const struct object *o, double jd, double horizon, struct ln_lnlat_posn *obs, struct ln_rst_time *rst)
+{
+	if (o->sdiam == ln_get_solar_sdiam)
+		return ln_get_solar_rst_horizon(jd, obs, horizon, rst); /* special case */
+	else
+		return o->rst(jd, obs, rst);
 }
