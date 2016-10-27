@@ -32,21 +32,24 @@
 #include "geonames.h"
 
 int main(int argc, char *argv[]) {
+	int ret, gmt_offset;
 	struct ln_lnlat_posn res;
-	char *result_name, *name;
-
-	result_name = malloc(128);
-	if (result_name == NULL)
-		return -1;
+	char name[128], tzid[32];
 
 	if (argc != 2)
 		fprintf(stderr, "Usage: geonames LOCATION\n");
 
-	int ret = geonames_lookup(argv[1], &res, result_name, 32);
-	if (!ret)
-		printf("%s is at (%.4f, %.4f)\r\n", result_name, res.lat, res.lng);
-
-	free(result_name);
+	ret = geonames_lookup_latlng(argv[1], &res, name, sizeof(name));
+	if (ret) {
+		fprintf(stderr, "Error: Failed to lookup coordinates of %s\n", argv[1]);
+		return 1;
+	}
+	
+	ret = geonames_lookup_tz(res, &gmt_offset, tzid, sizeof(tzid));
+	if (ret)
+		fprintf(stderr, "Error: Failed to lookup timezone for %.4f %.4f\n", res.lat, res.lng);
+	
+	printf("%s is at %.4f, %.4f with timezone %s (GMT%+d)\r\n", name, res.lat, res.lng, tzid, gmt_offset);
 
 	return ret;
 }

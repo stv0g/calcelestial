@@ -44,7 +44,6 @@
 
 #include "../config.h"
 #include "objects.h"
-#include "helpers.h"
 #include "formatter.h"
 #include "geonames.h"
 
@@ -59,6 +58,7 @@ static struct option long_options[] = {
 	{"lon",		required_argument, 0, 'o'},
 #ifdef GEONAMES_SUPPORT
 	{"query",	required_argument, 0, 'q'},
+	{"local",	no_argument,	   0, 'l'},
 #endif
 	{"timezone",	required_argument, 0, 'z'},
 	{"universal",	no_argument,	   0, 'u'},
@@ -70,16 +70,17 @@ static struct option long_options[] = {
 static const char *long_options_descs[] = {
 	"calc for celestial object: sun, moon, mars, neptune,\n\t\t\t jupiter, mercury, uranus, saturn, venus or pluto",
 	"calc rise/set time with twilight: nautic, civil or astronomical",
-	"calc at given time: YYYY-MM-DD [HH:MM:SS]",
+	"calc at given time: YYYY-MM-DD[_HH:MM:SS]",
 	"calc position at moment of: rise, set, transit",
 	"use rise, set, transit time of tomorrow",
 	"output format: see strftime (3) and calcelestial (1) for more details",
 	"geographical latitude of observer: -90° to 90°",
 	"geographical longitude of oberserver: -180° to 180°",
 #ifdef GEONAMES_SUPPORT
-	"query geonames.org for geographical coordinates",
+	"query coordinates using the geonames.org geolocation service",
+	"query local timezone using the geonames.org geolocation service",
 #endif
-	"override system timezone",
+	"override system timezone (TZ environment variable)",
 	"use universial time for parsing and formatting",
 	"show usage help",
 	"show version"
@@ -120,7 +121,7 @@ int main(int argc, char *argv[])
 	int ret;
 	time_t t;
 	double jd;
-	struct tm *date = NULL;
+	struct tm tm;
 	const struct object *obj;
 
 	/* Default options */
@@ -128,12 +129,16 @@ int main(int argc, char *argv[])
 	int tz = INT_MAX;
 
 	char *obj_str = basename(argv[0]);
-	char *format = "time: %Y-%m-%d %H:%M:%S az: §a (§s) alt: §h";
+	char *format = "time: %Y-%m-%d %H:%M:%S (%Z) az: §a (§s) alt: §h";
+	char tzid[32] = "";
 	char *query = NULL;
 
 	bool horizon_set = false;
-	bool utc = false;
 	bool next = false;
+	bool local_tz = false;
+	
+	time(&t);
+	localtime_r(&t, &tm);
 
 	enum {
 		MOMENT_NOW,
@@ -147,7 +152,7 @@ int main(int argc, char *argv[])
 
 	/* parse command line arguments */
 	while (1) {
-		char c = getopt_long(argc, argv, "+hvnut:d:f:a:o:q:z:p:m:H:", long_options, NULL);
+		char c = getopt_long(argc, argv, "+hvnult:d:f:a:o:q:z:p:m:H:", long_options, NULL);
 
 		/* detect the end of the options. */
 		if (c == -1)
@@ -173,13 +178,14 @@ int main(int argc, char *argv[])
 				break;
 
 			case 't':
-				date = malloc(sizeof(struct tm));
-				date->tm_isdst = -1; /* update dst */
-				if      (strptime(optarg, "%Y-%m-%d %H:%M:%S", date)) { }
-				else if (strptime(optarg, "%Y-%m-%d", date)) { }
+				tm.tm_isdst = -1; /* update dst */
+				if (strchr(optarg, '_')) {
+					if (!strptime(optarg, "%Y-%m-%d_%H:%M:%S", &tm))
+						usage_error("invalid time/date parameter");
+				}
 				else {
-					free(date);
-					usage_error("invalid date parameter");
+					if (!strptime(optarg, "%Y-%m-%d", &tm))
+						usage_error("invalid time/date parameter");
 				}
 				break;
 
@@ -213,19 +219,21 @@ int main(int argc, char *argv[])
 			case 'q':
 				query = strdup(optarg);
 				break;
-#endif
 
+			case 'l':
+				local_tz = true;
+				break;
+#endif
 			case 'p':
 				obj_str = optarg;
 				break;
 
 			case 'z':
-				tz = atoi(optarg);
+				strncpy(tzid, optarg, sizeof(tzid));
 				break;
 
 			case 'u':
-				utc = true;
-				tz = 0;
+				strncpy(tzid, "UTC", sizeof(tzid));
 				break;
 
 			case 'v':
@@ -250,11 +258,21 @@ int main(int argc, char *argv[])
 #ifdef GEONAMES_SUPPORT
 	/* Lookup place at http://geonames.org */
 	if (query) {
-		ret =  geonames_lookup(query, &obs, NULL, 0);
+		ret =  geonames_lookup_latlng(query, &obs, NULL, 0);
+		if (ret)
+			usage_error("failed to lookup location");
+	}
+	
+	if (local_tz) {
+		int gmt_offset;
+		ret =  geonames_lookup_tz(obs, &gmt_offset, tzid, sizeof(tzid));
 		if (ret)
 			usage_error("failed to lookup location");
 	}
 #endif
+
+	setenv("TZ", tzid, 1);
+	tzset();
 
 	/* Validate observer coordinates */
 	if (fabs(obs.lat) > 90)
@@ -262,21 +280,13 @@ int main(int argc, char *argv[])
 	if (fabs(obs.lng) > 180)
 		usage_error("invalid longitude, use --lon");
 	
-	if (horizon_set && !strcmp(object_name(obj), "sun"))
+	if (horizon_set && strcmp(object_name(obj), "sun"))
 		usage_error("the twilight parameter can only be used for the sun");
 
 	/* Calculate julian date */
-	if (date) {
-		t = (utc) ? mktimeutc(date) : mktime(date);
-		free(date);
-	}
-	else
-		t = time(NULL);
-
+	t = mktime(&tm);
 	jd = ln_get_julian_from_timet(&t);
-	date = localtime(&t);
 
-	result.tz = (tz == INT_MAX) ? date->tm_gmtoff / 3600 : tz;
 	result.obs = obs;
 
 #ifdef DEBUG
@@ -285,7 +295,7 @@ int main(int argc, char *argv[])
 	printf("Debug: for position: N %f, E %f\n", obs.lat, obs.lng);
 	printf("Debug: for object: %s\n", object_name(obj));
 	printf("Debug: with horizon: %f\n", horizon);
-	printf("Debug: with timezone: %d\n", result.tz);
+	printf("Debug: with timezone: %s\n", tzid);
 #endif
 
 	/* calc rst date */
@@ -309,11 +319,12 @@ rst:	if (object_rst(obj, jd - .5, horizon, &result.obs, &result.rst) == 1)  {
 			goto rst;
 		}
 	}
+	
+	ln_get_timet_from_julian(result.jd, &t);
+	localtime_r(&t, &result.tm);
 
-	/* calc position */
-	object_pos(obj, result.jd, &result);
+	object_pos(obj, jd, &result);
 
-	/* format & output */
 	format_result(format, &result);
 
 	return 0;
