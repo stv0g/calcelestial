@@ -28,8 +28,42 @@
 #include <string.h>
 
 #include "objects.h"
-#include "helpers.h"
 #include "formatter.h"
+
+#define PRECISION "3"
+
+struct specifiers {
+	const char *token;
+	void *data;
+	enum { DOUBLE, STRING, INTEGER } format;
+};
+
+/** Replace parts of the string with a possibily long replacement */
+char * strrepl(const char *subject, const char *search, const char *replace) {
+	int new_len = strlen(subject);
+	int search_len = strlen(search);
+	int replace_len = strlen(replace);
+	char *tmp;
+
+	for (tmp = strstr(subject, search); tmp != NULL; tmp = strstr(tmp + search_len, search))
+		new_len += replace_len - search_len;
+
+	const char *old = subject;
+	char *new = malloc(new_len);
+
+	new[0] = '\0'; /* empty string */
+	for (tmp = strstr(subject, search); tmp != NULL; tmp = strstr(tmp + search_len, search)) {
+		new_len = strlen(new);
+
+		strncpy(new + new_len, old, tmp - old);
+		strcpy(new + new_len + (tmp - old), replace);
+		old = tmp + search_len;
+	}
+
+	strcpy(new + strlen(new), old);
+
+	return new;
+}
 
 void format_result(const char *format, struct object_details *result)
 {
@@ -56,7 +90,6 @@ void format_result(const char *format, struct object_details *result)
 		{"§h", &result->hrz.alt,	DOUBLE},
 		{"§d", &result->diameter,	DOUBLE},
 		{"§e", &result->distance,	DOUBLE},
-		{"§t", &result->tz,		INTEGER},
 		{"§A", &result->obs.lat,	DOUBLE},
 		{"§O", &result->obs.lng,	DOUBLE},
 		{"§s", (void *) result->azidir, STRING},
@@ -72,11 +105,11 @@ void format_result(const char *format, struct object_details *result)
 				case INTEGER: snprintf(buffer, sizeof(buffer), "%d", * (int *) specifiers[i].data); break;
 			}
 
-			local_format = strreplace(local_format, specifiers[i].token, buffer);
+			local_format = strrepl(local_format, specifiers[i].token, buffer);
 		}
 	}
 
-	strfjd(buffer, sizeof(buffer), local_format, result->jd, result->tz);
+	strftime(buffer, sizeof(buffer), local_format, &result->tm);
 	printf("%s\n", buffer);
 
 	free(local_format);

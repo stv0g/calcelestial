@@ -28,15 +28,10 @@
 
 #include <libnova/libnova.h>
 
-#define PRECISION "3"
+/* Forward declaration */
+struct object_details;
 
-enum specifier_fmt { DOUBLE, STRING, INTEGER };
-
-struct specifiers {
-	const char *token;
-	void *data;
-	enum specifier_fmt format;
-};
+char * strrepl(const char *subject, const char *search, const char *replace);
 
 void format_result(const char *format, struct object_details *result);
 
