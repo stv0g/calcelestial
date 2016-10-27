@@ -56,7 +56,7 @@ static struct option long_options[] = {
 	{"format",	required_argument, 0, 'f'},
 	{"lat",		required_argument, 0, 'a'},
 	{"lon",		required_argument, 0, 'o'},
-#ifdef GEONAMES_SUPPORT
+#ifdef WITH_GEONAMES
 	{"query",	required_argument, 0, 'q'},
 	{"local",	no_argument,	   0, 'l'},
 #endif
@@ -76,7 +76,7 @@ static const char *long_options_descs[] = {
 	"output format: see strftime (3) and calcelestial (1) for more details",
 	"geographical latitude of observer: -90° to 90°",
 	"geographical longitude of oberserver: -180° to 180°",
-#ifdef GEONAMES_SUPPORT
+#ifdef WITH_GEONAMES
 	"query coordinates using the geonames.org geolocation service",
 	"query local timezone using the geonames.org geolocation service",
 #endif
@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
 			case 'o':
 				obs.lng = strtod(optarg, NULL);
 				break;
-#ifdef GEONAMES_SUPPORT
+#ifdef WITH_GEONAMES
 			case 'q':
 				query = strdup(optarg);
 				break;
@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
 	if (!obj)
 		usage_error("invalid or missing object, use --object");
 
-#ifdef GEONAMES_SUPPORT
+#ifdef WITH_GEONAMES
 	/* Lookup place at http://geonames.org */
 	if (query) {
 		ret =  geonames_lookup_latlng(query, &obs, NULL, 0);
