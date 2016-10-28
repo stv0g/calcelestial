@@ -1,6 +1,7 @@
 language: c
 
 sudo: required
+dist: trusty
 
 env:
   - CFG=--enable-debug
@@ -15,11 +16,13 @@ compiler:
   - gcc
 
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y libnova-dev libcurl4-openssl-dev libjson0-dev libdb4.8-dev
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qq update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libnova-dev libcurl4-openssl-dev libjson-c-dev libdb-dev; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install curl json-c berkeley-db; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then git clone git://git.code.sf.net/p/libnova/libnova libnova && pushd libnova && autoreconf -if && ./configure && make && sudo make install; popd; fi
 
 install:
   - autoreconf -i
 
 script:
-  - ./configure $CFG && make && make test
+  - ./configure $CFG && make && make -i test
