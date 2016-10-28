@@ -6,7 +6,7 @@ AC_INIT(calcelestial, 0.4, post@steffenvogel.de)
 AC_CONFIG_SRCDIR([src/calcelestial.c])
 AC_CONFIG_HEADERS([config.h])
 
-# geonames.org support
+# Extra args
 AC_ARG_ENABLE(
     [geonames], 
     [AS_HELP_STRING([--enable-geonames], [enable support geonames.org geocoding (def=yes)])],
@@ -14,19 +14,19 @@ AC_ARG_ENABLE(
     [enable_geonames=yes]
 )
 
-AM_CONDITIONAL([GEONAMES_SUPPORT], [test x"$enable_geonames" = x"yes"])
-if test x"$enable_geonames" = x"yes"; then
-    AC_DEFINE([GEONAMES_SUPPORT], [1], [compile with geonames.org lookup capabilities])
-    PKG_CHECK_MODULES([DEPS_GEONAMES], [libcurl >= 7.21, json-c >= 0.11])
-fi
-
-# debug compilation support
 AC_ARG_ENABLE(
     [debug],
     [AS_HELP_STRING([--enable-debug], [enable debug data generation (def=no)])],
     [debug=$enableval],
     [debug=no]
 )
+
+AM_CONDITIONAL([GEONAMES_SUPPORT], [test x"$enable_geonames" = x"yes"])
+
+if test x"$enable_geonames" = x"yes"; then
+    AC_DEFINE([GEONAMES_SUPPORT], [1], [compile with geonames.org lookup capabilities])
+    PKG_CHECK_MODULES([DEPS_GEONAMES], [libcurl >= 7.21, json-c >= 0.11])
+fi
 
 if test x"$debug" = x"yes"; then
     AC_DEFINE([DEBUG], [], [enable debugging])
