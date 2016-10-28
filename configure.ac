@@ -6,10 +6,6 @@ AC_INIT(calcelestial, 0.4, post@steffenvogel.de)
 AC_CONFIG_SRCDIR([src/calcelestial.c])
 AC_CONFIG_HEADERS([config.h])
 
-# Automake
-AM_INIT_AUTOMAKE
-AM_PROG_CC_C_O
-
 # Custom switches
 # geonames.org support
 AC_ARG_ENABLE(
@@ -64,6 +60,10 @@ if test x"$enable_geonames" = x"yes"; then
        AC_MSG_ERROR([Couldn't find libjson0 or libjson-c headers])
     fi
 fi
+
+# Automake
+AM_INIT_AUTOMAKE([foreign])
+AM_PROG_CC_C_O
 
 # Conditionals
 AM_CONDITIONAL([WITH_GEONAMES], [test x"$enable_geonames" = x"yes"])

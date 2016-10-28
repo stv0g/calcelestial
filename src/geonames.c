@@ -237,8 +237,6 @@ cached:
 static int parser_tz(struct json_object *jobj, void *userp)
 {
 	struct ctx_tz *ctx = userp;
-	
-	json_bool exists;
 	struct json_object *jobj_offset, *jobj_tzid;
 
 
@@ -264,8 +262,6 @@ static int parser_tz(struct json_object *jobj, void *userp)
 static int parser_latlng(struct json_object *jobj, void *userp)
 {
 	struct ctx_latlng *ctx = userp;
-
-	json_bool exists;
 	struct json_object *jobj_count, *jobj_geonames, *jobj_place, *jobj_lat, *jobj_lng, *jobj_name;
 	int results;
 
