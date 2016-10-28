@@ -43,6 +43,7 @@ if test x"$enable_geonames" = x"yes"; then
     AC_CHECK_LIB([curl],[curl_version],[],[AC_MSG_ERROR([Couldn't find libcurl])])
     AC_CHECK_LIB([json-c],[json_c_version],[has_lib_jsonc=yes])
     AC_CHECK_LIB([json],[json_object_get],[has_lib_json=yes])
+    AC_CHECK_LIB([db],[db_create],[],[AC_MSG_ERROR([Couldn't find libdb])])
     
     if test x"$has_lib_json" != x"yes" && test x"$has_lib_jsonc" != x"yes"; then
        AC_MSG_ERROR([Couldn't find libjson0 or libjson-c library])

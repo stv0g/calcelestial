@@ -79,11 +79,17 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 
 	char filename[256];
 	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
+	
+	ret = db_create(&dbp, NULL, 0);
+	if (ret) {
+		fprintf(stderr, "Error: db: %s\n", db_strerror(ret));
+		return ret;
+	}
 
-	dbp = dbopen(filename, O_RDWR | O_CREAT, 0664, DB_BTREE, NULL);
-	if (!dbp) {
-		fprintf(stderr, "dbopen: %s\n", strerror(errno));
-		exit (1);
+	ret = dbp->open(dbp, NULL, filename, NULL, DB_BTREE, DB_CREATE, 0);
+	if (ret) {
+		fprintf(stderr, "Error: db: %s\n", db_strerror(ret));
+		return ret;
 	}
 	
 	memset(&key, 0, sizeof(key));
@@ -94,7 +100,7 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 	
 	switch (op) {
 		case LOOKUP:
-			ret = dbp->get(dbp, &key, &data, 0);
+			ret = dbp->get(dbp, NULL, &key, &data, 0);
 			if (ret)
 				goto err;
 
@@ -105,7 +111,7 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 			s->len = data.size;
 			if (!s->ptr) {
 				fprintf(stderr, "malloc() failed: %s\n", strerror(errno));
-				exit(1);
+				goto err;
 			}
 			
 			memcpy(s->ptr, data.data, data.size);
@@ -115,9 +121,11 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 			data.data = s->ptr;
 			data.size = s->len;
 		
-			ret = dbp->put(dbp, &key, &data, 0);
-			if (ret)
+			ret = dbp->put(dbp, NULL, &key, &data, 0);
+			if (ret) {
+				fprintf(stderr, "Error: db: %s\n", db_strerror(ret));
 				goto err;
+			}
 #ifdef DEBUG
 			printf("Debug: cache key stored: %s => %s\n", (char *) key.data, (char *) data.data);
 #endif /* DEBUG */
@@ -129,7 +137,7 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 	}
 	
 err:	
-	dbp->close(dbp);
+	dbp->close(dbp, 0);
 
 	return ret;
 }
