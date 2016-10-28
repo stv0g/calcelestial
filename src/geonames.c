@@ -34,15 +34,8 @@
 #include <errno.h>
 
 #include <curl/curl.h>
+#include <json-c/json.h>
 #include <libnova/libnova.h>
-
-#include "config.h"
-
-#ifdef HAVE_JSON_C_JSON_H
-  #include <json-c/json.h>
-#elif defined(HAVE_JSON_JSON_H)
-  #include <json/json.h>
-#endif
 
 #include "../config.h"
 #include "geonames.h"
@@ -171,6 +164,7 @@ static int request_json(const char *url, int (*parser)(struct json_object *jobj,
 	CURLcode res;
 
 	struct json_object *jobj;
+	enum json_tokener_error error;
 	
 	struct string s = { 0 };
 	
@@ -210,10 +204,10 @@ static int request_json(const char *url, int (*parser)(struct json_object *jobj,
 #endif /* DEBUG */
 
 cached:	
-	jobj = json_tokener_parse(s.ptr);
+	jobj = json_tokener_parse_verbose(s.ptr, &error);
 	if (!jobj) {
 #ifdef DEBUG
-		printf("Debug: failed to parse json: %s\r\n", s.ptr);
+		printf("Debug: failed to parse json: %s\r\n", json_tokener_error_desc(error));
 #endif /* DEBUG */
 	}
 		
@@ -238,18 +232,16 @@ static int parser_tz(struct json_object *jobj, void *userp)
 {
 	struct ctx_tz *ctx = userp;
 	struct json_object *jobj_offset, *jobj_tzid;
-
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-	jobj_offset = json_object_object_get(jobj, "gmtOffset");
-	if (!jobj_offset)
+	
+	json_bool exists;
+	
+	exists = json_object_object_get_ex(jobj, "gmtOffset", &jobj_offset);
+	if (!exists)
 		return -1;
 	
-	jobj_tzid = json_object_object_get(jobj, "timezoneId");
-	if (!jobj_tzid)
-		return -2;
-#pragma GCC diagnostic pop
+	exists = json_object_object_get_ex(jobj, "timezoneId", &jobj_tzid);
+	if (!exists)
+		return -1;
 	
 	*ctx->gmt_offset = json_object_get_int(jobj_offset);
 	
@@ -264,16 +256,16 @@ static int parser_latlng(struct json_object *jobj, void *userp)
 	struct ctx_latlng *ctx = userp;
 	struct json_object *jobj_count, *jobj_geonames, *jobj_place, *jobj_lat, *jobj_lng, *jobj_name;
 	int results;
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-	jobj_count = json_object_object_get(jobj, "totalResultsCount");
-	if (!jobj_count)
+	
+	json_bool exists;
+	
+	exists = json_object_object_get_ex(jobj, "totalResultsCount", &jobj_count);
+	if (!exists)
 		return -1;
 
-	jobj_geonames = json_object_object_get(jobj, "geonames");
-	if (!jobj_geonames)
-		return -2;	
+	exists = json_object_object_get_ex(jobj, "geonames", &jobj_geonames);
+	if (!exists)
+		return -2;
 	
 	results = json_object_get_int(jobj_count);
 	if (results == 0)
@@ -282,19 +274,18 @@ static int parser_latlng(struct json_object *jobj, void *userp)
 	jobj_place = json_object_array_get_idx(jobj_geonames, 0);
 	if (!jobj_place)
 		return -4;
-
-	jobj_lat = json_object_object_get(jobj_place, "lat");
-	if (!jobj_lat)
+	
+	exists = json_object_object_get_ex(jobj_place, "lat", &jobj_lat);
+	if (!exists)
 		return -5;
 
-	jobj_lng = json_object_object_get(jobj_place, "lng");
-	if (!jobj_lng)
+	exists = json_object_object_get_ex(jobj_place, "lng", &jobj_lng);
+	if (!exists)
 		return -6;
 	
-	jobj_name = json_object_object_get(jobj_place, "name");
-	if (!jobj_name)
+	exists = json_object_object_get_ex(jobj_place, "name", &jobj_name);
+	if (!exists)
 		return -7;
-#pragma GCC diagnostic pop
 
 	ctx->coords->lat = json_object_get_double(jobj_lat);
 	ctx->coords->lng = json_object_get_double(jobj_lng);

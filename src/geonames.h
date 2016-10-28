@@ -26,6 +26,8 @@
 #ifndef _GEONAMES_H_
 #define _GEONAMES_H_
 
+#include <json-c/json.h>
+
 /* Forward declaration */
 struct ln_lnlat_posn;
 

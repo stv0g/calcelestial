@@ -5,22 +5,17 @@ calcelestial_LDADD = -lm
 
 OBJS = sun moon mars neptune jupiter mercury uranus saturn venus pluto
 
-if WITH_GEONAMES
+if GEONAMES_SUPPORT
   noinst_PROGRAMS = geonames
 
   geonames_SOURCES = geonames_main.c geonames.c formatter.c
+  geonames_LDADD = $(DEPS_GEONAMES_LIBS)
 
   calcelestial_SOURCES += geonames.c
-endif
+  calcelestial_LDADD += $(DEPS_GEONAMES_LIBS)
 
-if HAS_JSONC
-  calcelestial_LDADD += -ljson-c
-  geonames_LDADD = -ljson-c
-else
-  calcelestial_LDADD += -ljson
-  geonames_LDADD = -ljson
+  AM_CFLAGS = $(DEPS_GEONAMES_CFLAGS)
 endif
-
 
 links:
 	for OBJ in $(OBJS); do \
