@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 
 	/* parse command line arguments */
 	while (1) {
-		char c = getopt_long(argc, argv, "+hvnult:d:f:a:o:q:z:p:m:H:", long_options, NULL);
+		int c = getopt_long(argc, argv, "+hvnult:d:f:a:o:q:z:p:m:H:", long_options, NULL);
 
 		/* detect the end of the options. */
 		if (c == -1)
