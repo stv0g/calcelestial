@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 
 	char *obj_str = basename(argv[0]);
 	char *format = "time: %Y-%m-%d %H:%M:%S (%Z) az: §a (§s) alt: §h";
-	char tzid[32] = "";
+	char tzid[32];
 	char *query = NULL;
 
 	bool horizon_set = false;
@@ -150,6 +150,8 @@ int main(int argc, char *argv[])
 	struct ln_lnlat_posn obs = { DBL_MAX, DBL_MAX };
 	struct object_details result;
 
+	/* set tzid as empty (without repointing the buffer) */
+	strcpy(tzid, "");
 	/* parse command line arguments */
 	while (1) {
 		int c = getopt_long(argc, argv, "+hvnult:d:f:a:o:q:z:p:m:H:", long_options, NULL);
@@ -271,7 +273,8 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	setenv("TZ", tzid, 1);
+	if(strlen(tzid) > 0)	/* set TZ variable only when we have a value - otherwise rely on /etc/localtime or whatever other system fallbacks */
+		setenv("TZ", tzid, 1);
 	tzset();
 
 	/* Validate observer coordinates */
