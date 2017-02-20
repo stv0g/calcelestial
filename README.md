@@ -9,7 +9,7 @@ See manpage calcelestial(1) and the [blog entry](https://www.noteblok.net/2012/1
 ### Linux
 
 ```
-sudo apt-get install -y libnova-dev libcurl4-openssl-dev libjson-c-dev libdb-dev autoconf make gcc
+sudo apt-get install -y libnova-dev libcurl4-openssl-dev libjson-c-dev libdb-dev autoconf make gcc pkg-config
 autoreconf -i && ./configure && make install
 ````
 ### macOS
