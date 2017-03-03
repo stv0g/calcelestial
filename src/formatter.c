@@ -89,7 +89,7 @@ void print_format_tokens()
 	printf("The following special tokens are supported in the --format parameter:\n\n");
 	
 	for (i = 0; specifiers[i].token; i++)
-		printf("  %s\t%s (%d)\n", specifiers[i].token, specifiers[i].desc, specifiers[i].offset);
+		printf("  %s\t%s\n", specifiers[i].token, specifiers[i].desc);
 	
 	printf("\n");
 }
