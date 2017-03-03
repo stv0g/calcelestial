@@ -31,8 +31,11 @@
 /* Forward declaration */
 struct object_details;
 
+void format_result(const char *format, struct object_details *result);
+
 char * strrepl(const char *subject, const char *search, const char *replace);
 
-void format_result(const char *format, struct object_details *result);
+/** Print a list of supported § tokens. */
+void print_format_tokens();
 
 #endif /* _FORMATTER_H_ */

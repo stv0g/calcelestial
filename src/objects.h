@@ -40,11 +40,11 @@ struct object_details {
 	double distance;		/**< In AU (astronomical unit) */
 
 	struct ln_lnlat_posn obs;	/**< Observer position */
-	struct ln_rst_time rst;		/**< rise/set/transit time in JD */
+	struct ln_rst_time rst;		/**< Rise/set/transit time in JD */
 
 	struct ln_equ_posn equ;
 	struct ln_hrz_posn hrz;
-	const char *azidir;		/**< Direction of azimuth - like N,S,W,E,NSW,.. */
+	const char *azidir;		/**< Direction of azimuth - like N,S,W,E,NW,.. */
 };
 
 const struct object * object_lookup(const char *name);

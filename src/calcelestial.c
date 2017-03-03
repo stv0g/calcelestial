@@ -104,6 +104,8 @@ void usage()
 		op++;
 		desc++;
 	}
+	
+	print_format_tokens();
 
 	printf("\nA combination of --lat & --lon or --query is required.\n");
 	printf("Please report bugs to: %s\n", PACKAGE_BUGREPORT);
