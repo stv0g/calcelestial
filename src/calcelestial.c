@@ -129,7 +129,8 @@ int main(int argc, char *argv[])
 	int tz = INT_MAX;
 
 	char *obj_str = basename(argv[0]);
-	char *format = "time: %Y-%m-%d %H:%M:%S (%Z) az: §a (§s) alt: §h";
+	char *format = "%H:%M %d.%m.%Y";
+	//char *format = "time: %Y-%m-%d %H:%M:%S (%Z) az: §a (§s) alt: §h";
 	char tzid[32];
 	char *query = NULL;
 
