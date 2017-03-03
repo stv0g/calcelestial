@@ -2,7 +2,7 @@
 
 calcelestial calculates the sun's rise/set times, the solar noon and the daylight time duration.
 
-See manpage calcelestial(1) and the [blog entry](https://www.noteblok.net/2012/12/23/cron-jobs-fur-sonnenauf-untergang/) for more information
+See manpage calcelestial(1) and the [blog entry](https://www.noteblok.net/2013/05/05/calcelestial/) for more information
 
 # Installation
 
