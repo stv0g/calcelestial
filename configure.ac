@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT(calcelestial, 0.4, post@steffenvogel.de)
+AC_INIT(Calcelestial, 0.5, https://github.com/stv0g/calcelestial/issues, calcelestial, https://github.com/stv0g/calcelestial)
 AC_CONFIG_SRCDIR([src/calcelestial.c])
 AC_CONFIG_HEADERS([config.h])
 

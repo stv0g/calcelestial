@@ -86,13 +86,13 @@ static const char *long_options_descs[] = {
 	"show version"
 };
 
-void version()
+void print_version()
 {
 	printf("%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 	printf("libnova %s\n", LIBNOVA_VERSION);
 }
 
-void usage()
+void print_usage()
 {
 	printf("Usage:\n  %s [options]\n\n", PACKAGE_NAME);
 	printf("Options:\n");
@@ -104,17 +104,20 @@ void usage()
 		op++;
 		desc++;
 	}
+	printf("\n");
+	
+	printf("Note: A combination of --lat & --lon or --query is required.\n\n");
 	
 	print_format_tokens();
 
-	printf("\nA combination of --lat & --lon or --query is required.\n");
+	printf("%s is written by Steffen Vogel <post@steffenvogel.de>\n", PACKAGE_NAME);
 	printf("Please report bugs to: %s\n", PACKAGE_BUGREPORT);
 }
 
 void usage_error(const char *err)
 {
 	fprintf(stderr, "Error: %s\n\n", err);
-	usage();
+	print_usage();
 	exit(-1);
 }
 
@@ -242,11 +245,11 @@ int main(int argc, char *argv[])
 				break;
 
 			case 'v':
-				version();
+				print_version();
 				return 0;
 
 			case 'h':
-				usage();
+				print_usage();
 				return 0;
 
 			case '?':
