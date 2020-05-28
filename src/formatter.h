@@ -28,12 +28,16 @@
 
 #include <libnova/libnova.h>
 
+#define MAXLINELEN 256
+
 /* Forward declaration */
 struct object_details;
 
 void format_result(const char *format, struct object_details *result);
 
-char * strrepl(const char *subject, const char *search, const char *replace);
+size_t strlen_safe (const char * str, int maxlen);
+int searchstr (char *str, char *srchstr, int start, int end, int case_sens);
+int strrepl (const char *subject, const char *search, const char *replace, char *returnstr, long return_len);
 
 /** Print a list of supported § tokens. */
 void print_format_tokens();

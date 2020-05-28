@@ -72,7 +72,7 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 
 	char filename[256];
 	snprintf(filename, sizeof(filename), "%s/%s", getenv("HOME"), GEONAMES_CACHE_FILE);
-	
+
 	ret = db_create(&dbp, NULL, 0);
 	if (ret) {
 		fprintf(stderr, "Error: db: %s\n", db_strerror(ret));
@@ -84,13 +84,13 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 		fprintf(stderr, "Error: db: %s\n", db_strerror(ret));
 		return ret;
 	}
-	
+
 	memset(&key, 0, sizeof(key));
 	memset(&data, 0, sizeof(data));
 
 	key.data = (void *) url;
 	key.size = strlen(url) + 1;
-	
+
 	switch (op) {
 		case LOOKUP:
 			ret = dbp->get(dbp, NULL, &key, &data, 0);
@@ -106,14 +106,14 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 				fprintf(stderr, "malloc() failed: %s\n", strerror(errno));
 				goto err;
 			}
-			
+
 			memcpy(s->ptr, data.data, data.size);
 			break;
-		
+
 		case STORE:
 			data.data = s->ptr;
 			data.size = s->len;
-		
+
 			ret = dbp->put(dbp, NULL, &key, &data, 0);
 			if (ret) {
 				fprintf(stderr, "Error: db: %s\n", db_strerror(ret));
@@ -128,8 +128,8 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 			// TODO
 		}
 	}
-	
-err:	
+
+err:
 	dbp->close(dbp, 0);
 
 	return ret;
@@ -139,7 +139,7 @@ err:
 static size_t writefunction(void *contents, size_t size, size_t nmemb, void *userp)
 {
 	struct string *s = userp;
-	
+
 	size_t new_len = s->len + size*nmemb;
 
 	s->ptr = realloc(s->ptr, new_len + 1);
@@ -147,9 +147,9 @@ static size_t writefunction(void *contents, size_t size, size_t nmemb, void *use
 		fprintf(stderr, "realloc() failed\n");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	memcpy(s->ptr + s->len, contents, size*nmemb);
-	
+
 	s->ptr[new_len] = '\0';
 	s->len = new_len;
 
@@ -165,9 +165,9 @@ static int request_json(const char *url, int (*parser)(struct json_object *jobj,
 
 	struct json_object *jobj;
 	enum json_tokener_error error;
-	
+
 	struct string s = { 0 };
-	
+
 #ifdef GEONAMES_CACHE_SUPPORT
 	cached = cache(LOOKUP, url, &s) == 0;
 	if (cached)
@@ -191,27 +191,27 @@ static int request_json(const char *url, int (*parser)(struct json_object *jobj,
 	/* perform request */
 	res = curl_easy_perform(ch);
 
-	/* always cleanup */ 
+	/* always cleanup */
 	curl_easy_cleanup(ch);
 
 	if (res != CURLE_OK) {
 		fprintf(stderr, "Error: request failed: %s\n", curl_easy_strerror(res));
 		return -1;
 	}
-	
+
 #ifdef DEBUG
 	printf("Debug: request completed: %s\r\n", s.ptr);
 #endif /* DEBUG */
 
-cached:	
+cached:
 	jobj = json_tokener_parse_verbose(s.ptr, &error);
 	if (!jobj) {
 #ifdef DEBUG
 		printf("Debug: failed to parse json: %s\r\n", json_tokener_error_desc(error));
 #endif /* DEBUG */
 	}
-		
-		
+
+
 	ret = parser(jobj, ctx);
 	if (!ret && !cached) {
 #ifdef GEONAMES_CACHE_SUPPORT
@@ -232,22 +232,22 @@ static int parser_tz(struct json_object *jobj, void *userp)
 {
 	struct ctx_tz *ctx = userp;
 	struct json_object *jobj_offset, *jobj_tzid;
-	
+
 	json_bool exists;
-	
+
 	exists = json_object_object_get_ex(jobj, "gmtOffset", &jobj_offset);
 	if (!exists)
 		return -1;
-	
+
 	exists = json_object_object_get_ex(jobj, "timezoneId", &jobj_tzid);
 	if (!exists)
 		return -1;
-	
+
 	*ctx->gmt_offset = json_object_get_int(jobj_offset);
-	
+
 	if (ctx->tzid)
 		strncpy(ctx->tzid, json_object_get_string(jobj_tzid), ctx->tzidlen);
-	
+
 	return 0;
 }
 
@@ -256,9 +256,9 @@ static int parser_latlng(struct json_object *jobj, void *userp)
 	struct ctx_latlng *ctx = userp;
 	struct json_object *jobj_count, *jobj_geonames, *jobj_place, *jobj_lat, *jobj_lng, *jobj_name;
 	int results;
-	
+
 	json_bool exists;
-	
+
 	exists = json_object_object_get_ex(jobj, "totalResultsCount", &jobj_count);
 	if (!exists)
 		return -1;
@@ -266,7 +266,7 @@ static int parser_latlng(struct json_object *jobj, void *userp)
 	exists = json_object_object_get_ex(jobj, "geonames", &jobj_geonames);
 	if (!exists)
 		return -2;
-	
+
 	results = json_object_get_int(jobj_count);
 	if (results == 0)
 		return -3;
@@ -274,7 +274,7 @@ static int parser_latlng(struct json_object *jobj, void *userp)
 	jobj_place = json_object_array_get_idx(jobj_geonames, 0);
 	if (!jobj_place)
 		return -4;
-	
+
 	exists = json_object_object_get_ex(jobj_place, "lat", &jobj_lat);
 	if (!exists)
 		return -5;
@@ -282,7 +282,7 @@ static int parser_latlng(struct json_object *jobj, void *userp)
 	exists = json_object_object_get_ex(jobj_place, "lng", &jobj_lng);
 	if (!exists)
 		return -6;
-	
+
 	exists = json_object_object_get_ex(jobj_place, "name", &jobj_name);
 	if (!exists)
 		return -7;
@@ -304,7 +304,7 @@ int geonames_lookup_tz(struct ln_lnlat_posn coords, int *gmt_offset, char *tzid,
 		.tzid = tzid,
 		.tzidlen = tzidlen
 	};
-	
+
 	snprintf(url, sizeof(url), url_tz_tpl, coords.lat, coords.lng);
 
 	return request_json(url, parser_tz, &ctx);
@@ -314,21 +314,22 @@ int geonames_lookup_latlng(const char *place, struct ln_lnlat_posn *coords, char
 {
 	int ret;
 	char url[256];
+	char escaped_place[256];
 	struct ctx_latlng ctx = {
 		.coords = coords,
 		.name = name,
 		.namelen = namelen
 	};
-	
+
 	//char *escaped_place = curl_escape(place, 0);
-	char *escaped_place = strrepl(place, " ", "+");
-	
+	strrepl ((char *) place, " ", "+", escaped_place, 255);
+
 	snprintf(url, sizeof(url), url_tpl, escaped_place);
 
 	ret = request_json(url, parser_latlng, &ctx);
-	
+
 	//curl_free(escaped_place);
-	free(escaped_place);
-	
+	// free(escaped_place);
+
 	return ret;
 }
