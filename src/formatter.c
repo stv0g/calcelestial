@@ -34,6 +34,7 @@
 #define FALSE 0
 #define TRUE 1
 
+#define MAXLINELEN 512
 
 #define PRECISION "3"
 
@@ -218,9 +219,9 @@ int searchstr (char *str, char *srchstr, int start, int end, int case_sens)
 /** Replace parts of the string with a possibily long replacement */
 int strrepl (const char *subject, const char *search, const char *replace, char *returnstr, long return_len)
 {
-	int subject_len = strlen (subject);
-	int search_len = strlen (search);
-	int replace_len = strlen (replace);
+	int subject_len = strlen_safe (subject, MAXLINELEN);
+	int search_len = strlen_safe (search, MAXLINELEN);
+	int replace_len = strlen_safe (replace, MAXLINELEN);
 	int replace_pos;
 	int i, j, sub;
 	int return_pos = 0;

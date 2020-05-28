@@ -28,7 +28,7 @@
 
 #include <libnova/libnova.h>
 
-#define MAXLINELEN 256
+#define MAXLINELEN 512
 
 /* Forward declaration */
 struct object_details;

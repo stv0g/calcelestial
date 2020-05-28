@@ -31,7 +31,8 @@
 /* Forward declaration */
 struct ln_lnlat_posn;
 
-#define GEONAMES_CACHE_SUPPORT 1
+#define GEONAMES_CACHE_SUPPORT 0
+
 #define GEONAMES_CACHE_FILE ".geonames.db" /* in users home dir */
 
 int geonames_lookup_latlng(const char *place, struct ln_lnlat_posn *coords, char *name, size_t namelen);

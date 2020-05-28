@@ -41,6 +41,12 @@
 #include "geonames.h"
 #include "formatter.h"
 
+#define MAXLINELEN 512
+
+// protos formatter.c
+size_t strlen_safe (const char * str, int maxlen);
+
+
 static const char* url_tpl = "http://api.geonames.org/search?q=%s&maxRows=1&username=libastro&type=json&orderby=relevance";
 static const char* url_tz_tpl = "http://api.geonames.org/timezoneJSON?lat=%.6f&lng=%.6f&username=libastro";
 
@@ -89,7 +95,7 @@ static int cache(enum cache_op op, const char *url, struct string *s)
 	memset(&data, 0, sizeof(data));
 
 	key.data = (void *) url;
-	key.size = strlen(url) + 1;
+	key.size = strlen_safe (url, MAXLINELEN) + 1;
 
 	switch (op) {
 		case LOOKUP:
@@ -166,7 +172,10 @@ static int request_json(const char *url, int (*parser)(struct json_object *jobj,
 	struct json_object *jobj;
 	enum json_tokener_error error;
 
-	struct string s = { 0 };
+	struct string s;
+
+	s.ptr = 0;
+	s.len = 0;
 
 #ifdef GEONAMES_CACHE_SUPPORT
 	cached = cache(LOOKUP, url, &s) == 0;
@@ -185,7 +194,8 @@ static int request_json(const char *url, int (*parser)(struct json_object *jobj,
 
 	curl_easy_setopt(ch, CURLOPT_URL, url);
 	curl_easy_setopt(ch, CURLOPT_WRITEFUNCTION, writefunction);
-	curl_easy_setopt(ch, CURLOPT_WRITEDATA, (void *) &s);
+	// curl_easy_setopt(ch, CURLOPT_WRITEDATA, (void *) &s);
+	curl_easy_setopt(ch, CURLOPT_WRITEDATA, s.ptr);
 	curl_easy_setopt(ch, CURLOPT_USERAGENT, "libastro/1.0");
 
 	/* perform request */
@@ -200,11 +210,15 @@ static int request_json(const char *url, int (*parser)(struct json_object *jobj,
 	}
 
 #ifdef DEBUG
-	printf("Debug: request completed: %s\r\n", s.ptr);
+	printf("Debug: request completed: %s\r\n", s);
 #endif /* DEBUG */
 
 cached:
-	jobj = json_tokener_parse_verbose(s.ptr, &error);
+	#if DEBUG
+		printf ("DEBUG: s.ptr: '%s'\n", s.ptr);
+	#endif
+
+	jobj = json_tokener_parse_verbose (s.ptr, &error);
 	if (!jobj) {
 #ifdef DEBUG
 		printf("Debug: failed to parse json: %s\r\n", json_tokener_error_desc(error));
@@ -324,7 +338,15 @@ int geonames_lookup_latlng(const char *place, struct ln_lnlat_posn *coords, char
 	//char *escaped_place = curl_escape(place, 0);
 	strrepl ((char *) place, " ", "+", escaped_place, 255);
 
+	#if DEBUG
+		printf ("DEBUG: escaped_place: '%s'\n", escaped_place);
+	#endif
+
 	snprintf(url, sizeof(url), url_tpl, escaped_place);
+
+	#if DEBUG
+	 	printf ("DEBUG: url len: %i\n", strlen_safe (url, MAXLINELEN));
+	#endif
 
 	ret = request_json(url, parser_latlng, &ctx);
 
