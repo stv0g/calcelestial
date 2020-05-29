@@ -31,6 +31,11 @@
 #include "objects.h"
 #include "formatter.h"
 
+#define FALSE 0
+#define TRUE 1
+
+#define MAXLINELEN 512
+
 #define PRECISION "3"
 
 struct specifiers {
@@ -54,53 +59,241 @@ static struct specifiers specifiers[] = {
 	{ NULL }
 };
 
-/** Replace parts of the string with a possibily long replacement */
-char * strrepl(const char *subject, const char *search, const char *replace)
+size_t strlen_safe (const char * str, int maxlen)
 {
-	int new_len = strlen(subject);
-	int search_len = strlen(search);
-	int replace_len = strlen(replace);
-	char *tmp;
+	 long long int i = 0;
 
-	for (tmp = strstr(subject, search); tmp != NULL; tmp = strstr(tmp + search_len, search))
-		new_len += replace_len - search_len;
+	 while (1)
+	 {
+	 	if (str[i] != '\0')
+		{
+			i++;
+		}
+		else
+		{
+			return (i);
+		}
+		if (i > maxlen)
+		{
+			return (0);
+		}
+	}
+}
 
-	const char *old = subject;
-	char *new = malloc(new_len);
+int searchstr (char *str, char *srchstr, int start, int end, int case_sens)
+{
+	/* checked: ok! */
 
-	new[0] = '\0'; /* empty string */
-	for (tmp = strstr(subject, search); tmp != NULL; tmp = strstr(tmp + search_len, search)) {
-		new_len = strlen(new);
+	int i, j = 0, pos = -1, str_len, srchstr_len;
+	int ok = FALSE, check = TRUE;
+	int new_end;
+	char new_str, new_srchstr;
 
-		strncpy(new + new_len, old, tmp - old);
-		strcpy(new + new_len + (tmp - old), replace);
-		old = tmp + search_len;
+	str_len = strlen_safe ((const char *) str, MAXLINELEN);
+	srchstr_len = strlen_safe ((const char *) srchstr, MAXLINELEN);
+
+	if (start < 0 || start > str_len - 1)
+	{
+		i = 0;
+	}
+	else
+	{
+		i = start;
 	}
 
-	strcpy(new + strlen(new), old);
+	if (end == 0)
+	{
+		new_end = str_len - 1;
+	}
+	else
+	{
+		new_end = end;
+	}
 
-	return new;
+	while (! ok)
+	{
+		if (case_sens)
+		{
+			if (str[i] == srchstr[j])
+			{
+				pos = i;
+
+				/* found start of searchstring, checking now */
+
+				if (srchstr_len > 1)
+				{
+					for (j = j + 1; j <= srchstr_len - 1; j++)
+					{
+						if (i < new_end)
+						{
+							i++;
+						}
+
+						if (str[i] != srchstr[j]) check = FALSE;
+					}
+				}
+				if (check)
+				{
+					ok = TRUE;
+				}
+				else
+				{
+					pos = -1;
+				}
+			}
+			if (i < new_end)
+			{
+				i++;
+			}
+			else
+			{
+				ok = TRUE;
+			}
+		}
+		else
+		{
+			new_str = str[i];
+			new_srchstr = srchstr[j];
+
+			if (str[i] >= 97 && str[i] <= 122)
+			{
+				new_str = str[i] - 32;
+			}
+			if (srchstr[j] >= 97 && srchstr[j] <= 122)
+			{
+				new_srchstr = srchstr[j] - 32;
+			}
+
+			if (new_str == new_srchstr)
+			{
+				pos = i;
+
+				/* found start of searchstring, checking now */
+
+				if (srchstr_len > 1)
+				{
+					for (j = j + 1; j <= srchstr_len - 1; j++)
+					{
+						if (i < new_end)
+						{
+							i++;
+						}
+
+						new_str = str[i];
+						new_srchstr = srchstr[j];
+
+						if (str[i] >= 97 && str[i] <= 122)
+						{
+							new_str = str[i] - 32;
+						}
+						if (srchstr[j] >= 97 && srchstr[j] <= 122)
+						{
+							new_srchstr = srchstr[j] - 32;
+						}
+
+						if (new_str != new_srchstr) check = FALSE;
+					}
+				}
+				if (check)
+				{
+					ok = TRUE;
+				}
+				else
+				{
+					pos = -1;
+				}
+			}
+			if (i < new_end)
+			{
+				i++;
+			}
+			else
+			{
+				ok = TRUE;
+			}
+		}
+	}
+	return (pos);
+}
+
+/** Replace parts of the string with a possibily long replacement */
+int strrepl (const char *subject, const char *search, const char *replace, char *returnstr, long return_len)
+{
+	int subject_len = strlen_safe (subject, MAXLINELEN);
+	int search_len = strlen_safe (search, MAXLINELEN);
+	int replace_len = strlen_safe (replace, MAXLINELEN);
+	int replace_pos;
+	int i, j, sub;
+	int return_pos = 0;
+
+	// printf ("formatter.c: strrepl: subject: '%s'\nsearch: '%s'\nreplace: '%s'\n", subject, search, replace);
+
+	replace_pos = searchstr ((char *) subject, (char *) search, 0, 0, 1);
+	if (replace_pos == -1)
+	{
+		// search string not found
+		strcpy (returnstr, subject);
+		return (1);
+	}
+
+	if ((subject_len - search_len + replace_len) > return_len - 1)
+	{
+		// printf ("formatter.c: strrepl: ERROR return string overflow!\n");
+		return (1);	// ERROR CODE
+	}
+
+	// printf ("formatter.c: strrepl: found searchstr on: %i\n", replace_pos);
+
+	i = 0;
+	while (i < subject_len)
+	{
+		if (i < replace_pos || i > replace_pos)
+		{
+			returnstr[return_pos] = *subject++;
+			return_pos++;
+		}
+		if (i == replace_pos)
+		{
+			// insert replacestr to return string
+			for (j = 0; j < replace_len; j++)
+			{
+				returnstr[return_pos] = *replace++;
+				return_pos++;
+			}
+			for (sub = 0; sub < search_len; sub++)
+			{
+				subject++;
+			}
+		}
+		i++;
+	}
+	returnstr[return_pos] = '\0';
+	// printf ("strrepl: new: '%s'\n", returnstr);
+	return (0);
 }
 
 void print_format_tokens()
 {
 	int i;
-	
+
 	printf("The following special tokens are supported in the --format parameter:\n\n");
-	
+
 	for (i = 0; specifiers[i].token; i++)
 		printf("  %s\t%s\n", specifiers[i].token, specifiers[i].desc);
-	
+
 	printf("\n");
 }
 
 void format_result(const char *format, struct object_details *result)
 {
 	char buffer[128];
-	char *local_format = strdup(format);
+	char returnstr[256];
+	char local_format[256];
 	int i;
 
 	struct ln_hms ra;
+
+	strcpy (local_format, format);
 
 	/* convert results */
 	ln_deg_to_hms(result->equ.ra, &ra);
@@ -113,19 +306,20 @@ void format_result(const char *format, struct object_details *result)
 	for (i = 0; specifiers[i].token; i++) {
 		if (strstr(local_format, specifiers[i].token) != NULL) {
 			void *ptr = (char *) result + specifiers[i].offset;
-			
+
 			switch (specifiers[i].format) {
 				case DOUBLE: snprintf(buffer, sizeof(buffer), "%." PRECISION "f", * (double *) ptr); break;
 				case STRING: snprintf(buffer, sizeof(buffer), "%s",                 (char *)   ptr); break;
 				case INTEGER: snprintf(buffer, sizeof(buffer), "%d",              * (int *)    ptr); break;
 			}
 
-			local_format = strrepl(local_format, specifiers[i].token, buffer);
+			strrepl (local_format, (char *) specifiers[i].token, buffer, (char *) returnstr, 255);
+			strcpy (local_format, returnstr);
 		}
 	}
 
-	strftime(buffer, sizeof(buffer), local_format, &result->tm);
+	strftime(buffer, sizeof(buffer), returnstr, &result->tm);
 	printf("%s\n", buffer);
 
-	free(local_format);
+	// free(local_format);
 }
